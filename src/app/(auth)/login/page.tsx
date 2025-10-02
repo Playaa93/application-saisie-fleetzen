@@ -35,7 +35,7 @@ export default function LoginPage() {
       } else {
         setError("Email et mot de passe requis")
       }
-    } catch (err) {
+    } catch {
       setError("Erreur de connexion. Veuillez réessayer.")
     } finally {
       setIsLoading(false)

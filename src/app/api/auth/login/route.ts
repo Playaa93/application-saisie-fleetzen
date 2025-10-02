@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { db } from '@/db';
 import { agents } from '@/db/schema';
 import { agentSessions } from '@/db/intervention-schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { verifyPassword } from '@/utils/auth';
 import { generateAuthToken } from '@/middleware/auth';
 

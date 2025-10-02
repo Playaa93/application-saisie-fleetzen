@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { Droplet, Fuel, Container } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/mobile/MobileHeader"
 import type { InterventionType } from "@/types/intervention"
 
@@ -44,7 +44,7 @@ export default function NewInterventionPage() {
       <div className="p-4 space-y-4">
         <div className="text-center mb-6">
           <p className="text-muted-foreground">
-            Sélectionnez le type d'intervention à effectuer
+            Sélectionnez le type d&apos;intervention à effectuer
           </p>
         </div>
 

@@ -90,7 +90,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs">Aujourd'hui</CardDescription>
+              <CardDescription className="text-xs">Aujourd&apos;hui</CardDescription>
               <CardTitle className="text-2xl font-bold">{stats.today}</CardTitle>
             </CardHeader>
             <CardContent>
