@@ -1,0 +1,1419 @@
+openapi: 3.0.3
+info:
+  title: Form Management API
+  version: 1.0.0
+  description: |
+    Comprehensive RESTful API for managing dynamic forms, submissions, and user authentication.
+
+    ## Features
+    - Dynamic form creation and management
+    - Form submission handling with validation
+    - User authentication and authorization
+    - Role-based access control (RBAC)
+    - Real-time form analytics
+    - File upload support
+    - Multi-language support
+
+    ## Authentication
+    This API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+
+  contact:
+    name: API Support
+    email: support@formapi.example.com
+    url: https://formapi.example.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.formapi.example.com/v1
+    description: Production server
+  - url: https://staging-api.formapi.example.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization endpoints
+  - name: Forms
+    description: Form creation, retrieval, update, and deletion
+  - name: Submissions
+    description: Form submission management
+  - name: Users
+    description: User management operations
+  - name: Analytics
+    description: Form analytics and reporting
+  - name: Files
+    description: File upload and management
+
+paths:
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Creates a new user account with email and password
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basicUser:
+                summary: Basic user registration
+                value:
+                  email: user@example.com
+                  password: SecureP@ssw0rd
+                  firstName: John
+                  lastName: Doe
+              adminUser:
+                summary: Admin user registration
+                value:
+                  email: admin@example.com
+                  password: AdminP@ssw0rd123
+                  firstName: Admin
+                  lastName: User
+                  role: admin
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                success: true
+                message: User registered successfully
+                data:
+                  user:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    email: user@example.com
+                    firstName: John
+                    lastName: Doe
+                    role: user
+                    createdAt: "2025-10-02T12:00:00Z"
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+                  expiresIn: 86400
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: User with this email already exists
+                error:
+                  code: USER_EXISTS
+                  field: email
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticates a user and returns a JWT token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: user@example.com
+              password: SecureP@ssw0rd
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                success: true
+                message: Login successful
+                data:
+                  user:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    email: user@example.com
+                    firstName: John
+                    lastName: Doe
+                    role: user
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expiresIn: 86400
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generates a new access token using a refresh token
+      operationId: refreshToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: Valid refresh token
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidates the current user session
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Forms Endpoints
+  /forms:
+    get:
+      tags:
+        - Forms
+      summary: List all forms
+      description: Retrieves a paginated list of forms with optional filtering
+      operationId: listForms
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: status
+          in: query
+          description: Filter by form status
+          schema:
+            type: string
+            enum: [draft, published, archived]
+        - name: search
+          in: query
+          description: Search forms by title or description
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Forms retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      forms:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Form'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+              example:
+                success: true
+                data:
+                  forms:
+                    - id: f1e2d3c4-b5a6-7890-1234-567890abcdef
+                      title: Customer Feedback Form
+                      description: Collect customer feedback
+                      status: published
+                      createdBy: 123e4567-e89b-12d3-a456-426614174000
+                      createdAt: "2025-10-01T10:00:00Z"
+                      updatedAt: "2025-10-02T08:30:00Z"
+                      submissionCount: 142
+                    - id: a9b8c7d6-e5f4-3210-9876-543210fedcba
+                      title: Event Registration
+                      description: Register for our annual conference
+                      status: published
+                      createdBy: 123e4567-e89b-12d3-a456-426614174000
+                      createdAt: "2025-09-28T14:20:00Z"
+                      updatedAt: "2025-10-01T16:45:00Z"
+                      submissionCount: 87
+                  pagination:
+                    page: 1
+                    limit: 10
+                    total: 23
+                    totalPages: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Forms
+      summary: Create a new form
+      description: Creates a new form with fields and validation rules
+      operationId: createForm
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFormRequest'
+            examples:
+              contactForm:
+                summary: Simple contact form
+                value:
+                  title: Contact Us
+                  description: Get in touch with our team
+                  status: published
+                  fields:
+                    - name: fullName
+                      label: Full Name
+                      type: text
+                      required: true
+                      validation:
+                        minLength: 2
+                        maxLength: 100
+                    - name: email
+                      label: Email Address
+                      type: email
+                      required: true
+                      validation:
+                        pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                    - name: message
+                      label: Message
+                      type: textarea
+                      required: true
+                      validation:
+                        minLength: 10
+                        maxLength: 1000
+              surveyForm:
+                summary: Customer survey with multiple field types
+                value:
+                  title: Customer Satisfaction Survey
+                  description: Help us improve our services
+                  status: draft
+                  fields:
+                    - name: rating
+                      label: Overall Satisfaction
+                      type: rating
+                      required: true
+                      options:
+                        max: 5
+                        icon: star
+                    - name: category
+                      label: Service Category
+                      type: select
+                      required: true
+                      options:
+                        - value: support
+                          label: Customer Support
+                        - value: product
+                          label: Product Quality
+                        - value: delivery
+                          label: Delivery Service
+                    - name: recommend
+                      label: Would you recommend us?
+                      type: radio
+                      required: true
+                      options:
+                        - value: yes
+                          label: Yes
+                        - value: no
+                          label: No
+                        - value: maybe
+                          label: Maybe
+                    - name: improvements
+                      label: Suggestions for improvement
+                      type: textarea
+                      required: false
+                  settings:
+                    allowMultipleSubmissions: false
+                    showProgressBar: true
+                    submitButtonText: Submit Survey
+      responses:
+        '201':
+          description: Form created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Form'
+              example:
+                success: true
+                message: Form created successfully
+                data:
+                  id: f1e2d3c4-b5a6-7890-1234-567890abcdef
+                  title: Contact Us
+                  description: Get in touch with our team
+                  status: published
+                  fields:
+                    - id: field-001
+                      name: fullName
+                      label: Full Name
+                      type: text
+                      required: true
+                      validation:
+                        minLength: 2
+                        maxLength: 100
+                  createdBy: 123e4567-e89b-12d3-a456-426614174000
+                  createdAt: "2025-10-02T12:00:00Z"
+                  updatedAt: "2025-10-02T12:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /forms/{formId}:
+    get:
+      tags:
+        - Forms
+      summary: Get form by ID
+      description: Retrieves detailed information about a specific form
+      operationId: getFormById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+      responses:
+        '200':
+          description: Form retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FormDetailed'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags:
+        - Forms
+      summary: Update form
+      description: Updates an existing form's properties and fields
+      operationId: updateForm
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFormRequest'
+      responses:
+        '200':
+          description: Form updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Form'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Forms
+      summary: Delete form
+      description: Deletes a form and all associated submissions
+      operationId: deleteForm
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+      responses:
+        '200':
+          description: Form deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: Form and all submissions deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /forms/{formId}/duplicate:
+    post:
+      tags:
+        - Forms
+      summary: Duplicate form
+      description: Creates a copy of an existing form
+      operationId: duplicateForm
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Title for the duplicated form
+            example:
+              title: Contact Us (Copy)
+      responses:
+        '201':
+          description: Form duplicated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Form'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Submissions Endpoints
+  /forms/{formId}/submissions:
+    get:
+      tags:
+        - Submissions
+      summary: Get form submissions
+      description: Retrieves all submissions for a specific form
+      operationId: getFormSubmissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: startDate
+          in: query
+          description: Filter submissions from this date
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Filter submissions until this date
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Submissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      submissions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Submission'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+              example:
+                success: true
+                data:
+                  submissions:
+                    - id: sub-001
+                      formId: f1e2d3c4-b5a6-7890-1234-567890abcdef
+                      data:
+                        fullName: John Doe
+                        email: john@example.com
+                        message: Great service!
+                      submittedAt: "2025-10-02T11:30:00Z"
+                      ipAddress: 192.168.1.100
+                  pagination:
+                    page: 1
+                    limit: 20
+                    total: 142
+                    totalPages: 8
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Submissions
+      summary: Submit form
+      description: Creates a new form submission
+      operationId: submitForm
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitFormRequest'
+            example:
+              data:
+                fullName: Jane Smith
+                email: jane@example.com
+                message: I love your product!
+      responses:
+        '201':
+          description: Submission created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Submission'
+              example:
+                success: true
+                message: Form submitted successfully
+                data:
+                  id: sub-142
+                  formId: f1e2d3c4-b5a6-7890-1234-567890abcdef
+                  data:
+                    fullName: Jane Smith
+                    email: jane@example.com
+                    message: I love your product!
+                  submittedAt: "2025-10-02T12:15:00Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                success: false
+                message: Validation failed
+                errors:
+                  - field: email
+                    message: Invalid email format
+                  - field: message
+                    message: Message must be at least 10 characters
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submissions/{submissionId}:
+    get:
+      tags:
+        - Submissions
+      summary: Get submission by ID
+      description: Retrieves a specific submission
+      operationId: getSubmissionById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          description: Submission ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Submission retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Submission'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Submissions
+      summary: Delete submission
+      description: Deletes a specific submission
+      operationId: deleteSubmission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          description: Submission ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Submission deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Users Endpoints
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user
+      description: Retrieves the authenticated user's profile
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags:
+        - Users
+      summary: Update current user
+      description: Updates the authenticated user's profile
+      operationId: updateCurrentUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            example:
+              firstName: John
+              lastName: Smith
+              email: john.smith@example.com
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Analytics Endpoints
+  /forms/{formId}/analytics:
+    get:
+      tags:
+        - Analytics
+      summary: Get form analytics
+      description: Retrieves analytics data for a specific form
+      operationId: getFormAnalytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FormIdParam'
+        - name: period
+          in: query
+          description: Analytics time period
+          schema:
+            type: string
+            enum: [day, week, month, year, all]
+            default: month
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormAnalytics'
+              example:
+                success: true
+                data:
+                  formId: f1e2d3c4-b5a6-7890-1234-567890abcdef
+                  period: month
+                  totalSubmissions: 142
+                  submissionsByDay:
+                    - date: "2025-10-01"
+                      count: 12
+                    - date: "2025-10-02"
+                      count: 8
+                  averageCompletionTime: 45
+                  abandonmentRate: 12.5
+                  topFields:
+                    - fieldName: email
+                      errorRate: 5.2
+                    - fieldName: message
+                      errorRate: 2.1
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Files Endpoints
+  /files/upload:
+    post:
+      tags:
+        - Files
+      summary: Upload file
+      description: Uploads a file for use in form submissions
+      operationId: uploadFile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload (max 10MB)
+                fieldName:
+                  type: string
+                  description: Associated form field name
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      fileId:
+                        type: string
+                      fileName:
+                        type: string
+                      fileSize:
+                        type: integer
+                      mimeType:
+                        type: string
+                      url:
+                        type: string
+              example:
+                success: true
+                message: File uploaded successfully
+                data:
+                  fileId: file-abc123
+                  fileName: document.pdf
+                  fileSize: 2048576
+                  mimeType: application/pdf
+                  url: https://cdn.formapi.example.com/files/file-abc123
+        '400':
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: File size exceeds maximum allowed (10MB)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login or /auth/register
+
+  parameters:
+    FormIdParam:
+      name: formId
+      in: path
+      required: true
+      description: Unique form identifier
+      schema:
+        type: string
+        format: uuid
+      example: f1e2d3c4-b5a6-7890-1234-567890abcdef
+
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
+    SortParam:
+      name: sort
+      in: query
+      description: Sort field and order (e.g., createdAt:desc)
+      schema:
+        type: string
+        default: createdAt:desc
+
+  schemas:
+    # Authentication Schemas
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User's password (min 8 characters)
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        role:
+          type: string
+          enum: [user, admin]
+          default: user
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+              description: JWT access token
+            expiresIn:
+              type: integer
+              description: Token expiration time in seconds
+
+    TokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            expiresIn:
+              type: integer
+
+    # User Schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        email:
+          type: string
+          format: email
+
+    # Form Schemas
+    Form:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        submissionCount:
+          type: integer
+
+    FormDetailed:
+      allOf:
+        - $ref: '#/components/schemas/Form'
+        - type: object
+          properties:
+            fields:
+              type: array
+              items:
+                $ref: '#/components/schemas/FormField'
+            settings:
+              $ref: '#/components/schemas/FormSettings'
+
+    FormField:
+      type: object
+      required:
+        - name
+        - label
+        - type
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Field identifier (used in submission data)
+        label:
+          type: string
+          description: Display label for the field
+        type:
+          type: string
+          enum: [text, email, number, textarea, select, radio, checkbox, date, time, file, rating]
+        required:
+          type: boolean
+          default: false
+        placeholder:
+          type: string
+        helpText:
+          type: string
+        defaultValue:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              label:
+                type: string
+        validation:
+          type: object
+          properties:
+            minLength:
+              type: integer
+            maxLength:
+              type: integer
+            min:
+              type: number
+            max:
+              type: number
+            pattern:
+              type: string
+              description: Regular expression pattern
+            customMessage:
+              type: string
+
+    FormSettings:
+      type: object
+      properties:
+        allowMultipleSubmissions:
+          type: boolean
+          default: true
+        showProgressBar:
+          type: boolean
+          default: false
+        submitButtonText:
+          type: string
+          default: Submit
+        successMessage:
+          type: string
+        redirectUrl:
+          type: string
+          format: uri
+        enableCaptcha:
+          type: boolean
+          default: false
+        emailNotifications:
+          type: boolean
+          default: false
+        notificationEmail:
+          type: string
+          format: email
+
+    CreateFormRequest:
+      type: object
+      required:
+        - title
+        - fields
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        status:
+          type: string
+          enum: [draft, published]
+          default: draft
+        fields:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/FormField'
+        settings:
+          $ref: '#/components/schemas/FormSettings'
+
+    UpdateFormRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        status:
+          type: string
+          enum: [draft, published, archived]
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormField'
+        settings:
+          $ref: '#/components/schemas/FormSettings'
+
+    # Submission Schemas
+    Submission:
+      type: object
+      properties:
+        id:
+          type: string
+        formId:
+          type: string
+          format: uuid
+        data:
+          type: object
+          additionalProperties: true
+          description: Form field values
+        submittedAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+
+    SubmitFormRequest:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: Form field values matching the form schema
+
+    # Analytics Schemas
+    FormAnalytics:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            formId:
+              type: string
+              format: uuid
+            period:
+              type: string
+            totalSubmissions:
+              type: integer
+            submissionsByDay:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  count:
+                    type: integer
+            averageCompletionTime:
+              type: number
+              description: Average time in seconds
+            abandonmentRate:
+              type: number
+              description: Percentage of abandoned forms
+            topFields:
+              type: array
+              items:
+                type: object
+                properties:
+                  fieldName:
+                    type: string
+                  errorRate:
+                    type: number
+
+    # Common Response Schemas
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            field:
+              type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Invalid request data
+            error:
+              code: VALIDATION_ERROR
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Authentication required
+            error:
+              code: UNAUTHORIZED
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: You don't have permission to perform this action
+            error:
+              code: FORBIDDEN
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Resource not found
+            error:
+              code: NOT_FOUND

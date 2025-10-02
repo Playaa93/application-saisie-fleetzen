@@ -1,0 +1,26 @@
+{
+  "scripts": {
+    "db:migrate": "tsx src/db/index.ts migrate",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:seed:clear": "tsx -e \"import { clearDatabase } from './src/db/seed'; clearDatabase()\"",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:push": "drizzle-kit push:pg",
+    "db:introspect": "drizzle-kit introspect:pg",
+    "db:check": "drizzle-kit check:pg",
+    "db:up": "drizzle-kit up:pg",
+    "db:reset": "tsx scripts/db-reset.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "pg": "^8.11.3",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.20.6",
+    "@types/pg": "^8.10.9",
+    "@types/bcryptjs": "^2.4.6",
+    "tsx": "^4.6.0"
+  }
+}

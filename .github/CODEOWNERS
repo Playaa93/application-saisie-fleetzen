@@ -1,0 +1,27 @@
+# This file defines code ownership for the repository
+# Changes to these files require approval from specified owners
+
+# Default owners for everything in the repo
+* @your-github-username
+
+# Workflow files require DevOps team approval
+/.github/workflows/ @your-github-username @devops-team
+
+# Security-related files require security team approval
+/.github/workflows/security.yml @security-team
+/config/lighthouse-budget.json @performance-team
+
+# Infrastructure and deployment
+/vercel.json @devops-team
+/Dockerfile @devops-team
+/.dockerignore @devops-team
+
+# Package dependencies
+/package.json @your-github-username
+/package-lock.json @your-github-username
+
+# Configuration files
+*.config.js @your-github-username
+*.config.ts @your-github-username
+tsconfig*.json @your-github-username
+.eslintrc* @your-github-username

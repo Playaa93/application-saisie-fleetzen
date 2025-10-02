@@ -1,0 +1,52 @@
+{
+  "default": [
+    {
+      "key": "architecture/database-schema",
+      "value": "PostgreSQL with 11 core tables using Drizzle ORM",
+      "namespace": "default",
+      "timestamp": 1759404561479
+    },
+    {
+      "key": "swarm/validation/status",
+      "value": "Production validation complete - CRITICAL: No application code found. See docs/production-validation-report.md for details.",
+      "namespace": "default",
+      "timestamp": 1759404571499
+    },
+    {
+      "key": "architecture/tech-stack",
+      "value": "Next.js 15, React 19, TypeScript, Drizzle ORM, PostgreSQL, Redis, NextAuth v5, shadcn/ui, Tailwind CSS",
+      "namespace": "default",
+      "timestamp": 1759404571695
+    },
+    {
+      "key": "architecture/security-strategy",
+      "value": "NextAuth v5, RBAC, AES-256-GCM encryption, Upstash rate limiting, CSRF protection",
+      "namespace": "default",
+      "timestamp": 1759404579126
+    },
+    {
+      "key": "architecture/api-design",
+      "value": "REST API at /api/v1 with JWT auth, endpoints for forms, submissions, analytics, workspaces, integrations",
+      "namespace": "default",
+      "timestamp": 1759404585993
+    },
+    {
+      "key": "architecture/deployment",
+      "value": "Vercel Edge Network with PostgreSQL, Redis, Blob Storage, global CDN",
+      "namespace": "default",
+      "timestamp": 1759404590137
+    },
+    {
+      "key": "architecture/deliverables",
+      "value": "Complete: architecture.md, quick-reference.md, database-schema.sql - All design decisions documented and stored in coordination memory",
+      "namespace": "default",
+      "timestamp": 1759404674957
+    },
+    {
+      "key": "architecture/key-decisions",
+      "value": "8 ADRs documented: Next.js 15, Drizzle ORM, Monolithic, PostgreSQL, JSONB responses, NextAuth v5, shadcn/ui, Vercel deployment",
+      "namespace": "default",
+      "timestamp": 1759404685187
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "contactForm": {
+    "id": "form-contact-001",
+    "title": "Contact Form",
+    "description": "Get in touch with us",
+    "fields": [
+      {
+        "id": "field-1",
+        "type": "text",
+        "label": "Full Name",
+        "placeholder": "John Doe",
+        "required": true,
+        "validation": {
+          "minLength": 2,
+          "maxLength": 100
+        }
+      },
+      {
+        "id": "field-2",
+        "type": "email",
+        "label": "Email Address",
+        "placeholder": "john@example.com",
+        "required": true,
+        "validation": {
+          "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+        }
+      },
+      {
+        "id": "field-3",
+        "type": "tel",
+        "label": "Phone Number",
+        "placeholder": "+1 (555) 123-4567",
+        "required": false,
+        "validation": {
+          "pattern": "^[\\d\\s\\-\\+\\(\\)]+$"
+        }
+      },
+      {
+        "id": "field-4",
+        "type": "textarea",
+        "label": "Message",
+        "placeholder": "Your message here...",
+        "required": true,
+        "validation": {
+          "minLength": 10,
+          "maxLength": 1000
+        }
+      }
+    ],
+    "settings": {
+      "submitButtonText": "Send Message",
+      "successMessage": "Thank you for your message!",
+      "redirectUrl": "/thank-you"
+    },
+    "createdAt": "2025-01-15T10:00:00.000Z",
+    "updatedAt": "2025-01-15T10:00:00.000Z",
+    "status": "published"
+  },
+  "surveyForm": {
+    "id": "form-survey-001",
+    "title": "Customer Satisfaction Survey",
+    "description": "Help us improve our service",
+    "fields": [
+      {
+        "id": "field-1",
+        "type": "select",
+        "label": "How did you hear about us?",
+        "required": true,
+        "options": [
+          { "value": "google", "label": "Google Search" },
+          { "value": "social", "label": "Social Media" },
+          { "value": "friend", "label": "Friend/Family" },
+          { "value": "other", "label": "Other" }
+        ]
+      },
+      {
+        "id": "field-2",
+        "type": "radio",
+        "label": "How satisfied are you with our service?",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Very Satisfied" },
+          { "value": "4", "label": "Satisfied" },
+          { "value": "3", "label": "Neutral" },
+          { "value": "2", "label": "Dissatisfied" },
+          { "value": "1", "label": "Very Dissatisfied" }
+        ]
+      },
+      {
+        "id": "field-3",
+        "type": "checkbox",
+        "label": "Which features do you use? (Select all that apply)",
+        "required": false,
+        "options": [
+          { "value": "feature1", "label": "Feature 1" },
+          { "value": "feature2", "label": "Feature 2" },
+          { "value": "feature3", "label": "Feature 3" },
+          { "value": "feature4", "label": "Feature 4" }
+        ]
+      },
+      {
+        "id": "field-4",
+        "type": "textarea",
+        "label": "Additional Comments",
+        "placeholder": "Optional feedback...",
+        "required": false,
+        "validation": {
+          "maxLength": 500
+        }
+      }
+    ],
+    "settings": {
+      "submitButtonText": "Submit Survey",
+      "successMessage": "Thank you for your feedback!",
+      "allowAnonymous": true
+    },
+    "createdAt": "2025-01-16T10:00:00.000Z",
+    "updatedAt": "2025-01-16T10:00:00.000Z",
+    "status": "published"
+  },
+  "registrationForm": {
+    "id": "form-register-001",
+    "title": "User Registration",
+    "description": "Create your account",
+    "fields": [
+      {
+        "id": "field-1",
+        "type": "text",
+        "label": "Username",
+        "placeholder": "username",
+        "required": true,
+        "validation": {
+          "minLength": 3,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_]+$",
+          "errorMessage": "Username must be alphanumeric"
+        }
+      },
+      {
+        "id": "field-2",
+        "type": "email",
+        "label": "Email",
+        "placeholder": "user@example.com",
+        "required": true
+      },
+      {
+        "id": "field-3",
+        "type": "password",
+        "label": "Password",
+        "required": true,
+        "validation": {
+          "minLength": 8,
+          "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
+          "errorMessage": "Password must contain uppercase, lowercase, number, and special character"
+        }
+      },
+      {
+        "id": "field-4",
+        "type": "password",
+        "label": "Confirm Password",
+        "required": true,
+        "validation": {
+          "matchField": "field-3",
+          "errorMessage": "Passwords must match"
+        }
+      },
+      {
+        "id": "field-5",
+        "type": "checkbox",
+        "label": "I agree to the Terms and Conditions",
+        "required": true,
+        "options": [
+          { "value": "agree", "label": "Yes, I agree" }
+        ]
+      }
+    ],
+    "settings": {
+      "submitButtonText": "Create Account",
+      "successMessage": "Account created successfully!",
+      "redirectUrl": "/dashboard"
+    },
+    "createdAt": "2025-01-17T10:00:00.000Z",
+    "updatedAt": "2025-01-17T10:00:00.000Z",
+    "status": "published"
+  },
+  "feedbackForm": {
+    "id": "form-feedback-001",
+    "title": "Product Feedback",
+    "description": "Share your thoughts",
+    "fields": [
+      {
+        "id": "field-1",
+        "type": "text",
+        "label": "Product Name",
+        "required": true
+      },
+      {
+        "id": "field-2",
+        "type": "number",
+        "label": "Rating (1-10)",
+        "required": true,
+        "validation": {
+          "min": 1,
+          "max": 10
+        }
+      },
+      {
+        "id": "field-3",
+        "type": "textarea",
+        "label": "Feedback",
+        "required": true,
+        "validation": {
+          "minLength": 20,
+          "maxLength": 500
+        }
+      },
+      {
+        "id": "field-4",
+        "type": "file",
+        "label": "Upload Screenshot (optional)",
+        "required": false,
+        "validation": {
+          "accept": "image/*",
+          "maxSize": 5242880
+        }
+      }
+    ],
+    "settings": {
+      "submitButtonText": "Submit Feedback",
+      "successMessage": "Thank you for your feedback!"
+    },
+    "createdAt": "2025-01-18T10:00:00.000Z",
+    "updatedAt": "2025-01-18T10:00:00.000Z",
+    "status": "draft"
+  }
+}

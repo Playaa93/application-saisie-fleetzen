@@ -1,0 +1,69 @@
+{
+  "contactFormSubmissions": [
+    {
+      "id": "sub-001",
+      "formId": "form-contact-001",
+      "responses": {
+        "field-1": "John Doe",
+        "field-2": "john.doe@example.com",
+        "field-3": "+1 (555) 123-4567",
+        "field-4": "I would like to inquire about your services."
+      },
+      "submittedAt": "2025-01-20T14:30:00.000Z",
+      "ipAddress": "192.168.1.1",
+      "userAgent": "Mozilla/5.0..."
+    },
+    {
+      "id": "sub-002",
+      "formId": "form-contact-001",
+      "responses": {
+        "field-1": "Jane Smith",
+        "field-2": "jane.smith@example.com",
+        "field-3": "",
+        "field-4": "Great product! Looking forward to using it more."
+      },
+      "submittedAt": "2025-01-20T15:45:00.000Z",
+      "ipAddress": "192.168.1.2",
+      "userAgent": "Mozilla/5.0..."
+    }
+  ],
+  "surveyFormSubmissions": [
+    {
+      "id": "sub-003",
+      "formId": "form-survey-001",
+      "responses": {
+        "field-1": "google",
+        "field-2": "5",
+        "field-3": ["feature1", "feature2", "feature3"],
+        "field-4": "Everything works great! Very intuitive interface."
+      },
+      "submittedAt": "2025-01-21T10:00:00.000Z"
+    },
+    {
+      "id": "sub-004",
+      "formId": "form-survey-001",
+      "responses": {
+        "field-1": "friend",
+        "field-2": "4",
+        "field-3": ["feature1", "feature4"],
+        "field-4": ""
+      },
+      "submittedAt": "2025-01-21T11:30:00.000Z"
+    }
+  ],
+  "registrationFormSubmissions": [
+    {
+      "id": "sub-005",
+      "formId": "form-register-001",
+      "responses": {
+        "field-1": "johndoe123",
+        "field-2": "john.doe@example.com",
+        "field-3": "SecureP@ss123",
+        "field-4": "SecureP@ss123",
+        "field-5": ["agree"]
+      },
+      "submittedAt": "2025-01-22T09:15:00.000Z",
+      "userId": "user-001"
+    }
+  ]
+}
