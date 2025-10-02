@@ -1,0 +1,19 @@
+# Scripts de migration
+scripts/
+
+# Documentation
+docs/
+
+# Fichiers de développement
+*.md
+!README.md
+
+# Tests
+tests/
+*.test.ts
+*.test.tsx
+
+# Claude Code
+.claude/
+memory/
+coordination/
