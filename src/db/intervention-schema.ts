@@ -5,12 +5,13 @@
 
 import { pgTable, text, timestamp, integer, jsonb, boolean, uuid, index, uniqueIndex, decimal } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { users, organizations } from './schema';
+// Note: Using Supabase directly, not Drizzle schema
+// import { users, organizations } from './schema';
 
 // ==================== CLIENTS TABLE ====================
 export const clients = pgTable('clients', {
   id: uuid('id').defaultRandom().primaryKey(),
-  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id'),
 
   name: text('name').notNull(),
   code: text('code').notNull(), // Client identifier code
@@ -64,7 +65,7 @@ export const vehicles = pgTable('vehicles', {
 // ==================== INTERVENTION TYPES TABLE ====================
 export const interventionTypes = pgTable('intervention_types', {
   id: uuid('id').defaultRandom().primaryKey(),
-  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id'),
 
   name: text('name').notNull(),
   code: text('code').notNull(),
@@ -95,7 +96,7 @@ export const interventions = pgTable('interventions', {
   clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
   vehicleId: uuid('vehicle_id').notNull().references(() => vehicles.id, { onDelete: 'cascade' }),
   typeId: uuid('type_id').notNull().references(() => interventionTypes.id, { onDelete: 'restrict' }),
-  agentId: uuid('agent_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  agentId: uuid('agent_id').notNull(),
 
   // Intervention Details
   interventionNumber: text('intervention_number').notNull().unique(), // Auto-generated unique number
@@ -197,7 +198,7 @@ export const interventionPhotos = pgTable('intervention_photos', {
 // ==================== AGENT SESSIONS TABLE ====================
 export const agentSessions = pgTable('agent_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  agentId: uuid('agent_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  agentId: uuid('agent_id').notNull(),
 
   token: text('token').notNull().unique(),
   deviceId: text('device_id'),
@@ -221,11 +222,11 @@ export const agentSessions = pgTable('agent_sessions', {
 
 // ==================== RELATIONS ====================
 
-export const clientsRelations = relations(clients, ({ one, many }) => ({
-  organization: one(organizations, {
-    fields: [clients.organizationId],
-    references: [organizations.id],
-  }),
+export const clientsRelations = relations(clients, ({ many }) => ({
+  // organization: one(organizations, {
+  //   fields: [clients.organizationId],
+  //   references: [organizations.id],
+  // }),
   vehicles: many(vehicles),
   interventions: many(interventions),
 }));
@@ -238,11 +239,11 @@ export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
   interventions: many(interventions),
 }));
 
-export const interventionTypesRelations = relations(interventionTypes, ({ one, many }) => ({
-  organization: one(organizations, {
-    fields: [interventionTypes.organizationId],
-    references: [organizations.id],
-  }),
+export const interventionTypesRelations = relations(interventionTypes, ({ many }) => ({
+  // organization: one(organizations, {
+  //   fields: [interventionTypes.organizationId],
+  //   references: [organizations.id],
+  // }),
   interventions: many(interventions),
 }));
 
@@ -259,10 +260,10 @@ export const interventionsRelations = relations(interventions, ({ one, many }) =
     fields: [interventions.typeId],
     references: [interventionTypes.id],
   }),
-  agent: one(users, {
-    fields: [interventions.agentId],
-    references: [users.id],
-  }),
+  // agent: one(users, {
+  //   fields: [interventions.agentId],
+  //   references: [users.id],
+  // }),
   photos: many(interventionPhotos),
 }));
 
@@ -273,12 +274,12 @@ export const interventionPhotosRelations = relations(interventionPhotos, ({ one 
   }),
 }));
 
-export const agentSessionsRelations = relations(agentSessions, ({ one }) => ({
-  agent: one(users, {
-    fields: [agentSessions.agentId],
-    references: [users.id],
-  }),
-}));
+// export const agentSessionsRelations = relations(agentSessions, ({ one }) => ({
+//   agent: one(users, {
+//     fields: [agentSessions.agentId],
+//     references: [users.id],
+//   }),
+// }));
 
 // ==================== TYPES ====================
 

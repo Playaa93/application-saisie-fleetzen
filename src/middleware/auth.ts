@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { db } from '@/db';
-import { agentSessions, users } from '@/db/intervention-schema';
+import { agentSessions } from '@/db/intervention-schema';
 import { eq, and, gt } from 'drizzle-orm';
 
 const JWT_SECRET = new TextEncoder().encode(
