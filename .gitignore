@@ -79,3 +79,6 @@ nul
 *.tmp
 
 .vercel
+
+# Local Netlify folder
+.netlify

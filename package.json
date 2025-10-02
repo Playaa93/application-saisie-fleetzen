@@ -69,6 +69,7 @@
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
     "@jest/globals": "^29.7.0",
+    "@netlify/plugin-nextjs": "^5.13.4",
     "@opennextjs/cloudflare": "^1.9.1",
     "@playwright/test": "^1.40.1",
     "@testing-library/jest-dom": "^6.1.5",
