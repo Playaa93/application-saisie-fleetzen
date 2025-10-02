@@ -12,18 +12,16 @@ import * as schema from './schema';
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
 
-// Environment variables validation
-const requiredEnvVars = ['DATABASE_URL'] as const;
+// Environment variables validation (optional - we use Supabase client directly)
+const DATABASE_URL = process.env.DATABASE_URL;
 
-requiredEnvVars.forEach((envVar) => {
-  if (!process.env[envVar]) {
-    throw new Error(`Missing required environment variable: ${envVar}`);
-  }
-});
+if (!DATABASE_URL) {
+  console.warn('DATABASE_URL not set - Drizzle features will be unavailable. Using Supabase client instead.');
+}
 
-// Database configuration
-const dbConfig = {
-  connectionString: process.env.DATABASE_URL!,
+// Database configuration (only if DATABASE_URL is provided)
+const dbConfig = DATABASE_URL ? {
+  connectionString: DATABASE_URL,
   max: parseInt(process.env.DB_POOL_MAX || '20', 10),
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '10000', 10),
@@ -31,23 +29,25 @@ const dbConfig = {
   ssl: {
     rejectUnauthorized: false // Allow self-signed certificates for Supabase
   },
-};
+} : undefined;
 
-// Create connection pool
-export const pool = new Pool(dbConfig);
+// Create connection pool (only if config exists)
+export const pool = dbConfig ? new Pool(dbConfig) : null as any;
 
-// Handle pool errors
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle database client', err);
-  process.exit(-1);
-});
+// Handle pool errors (only if pool exists)
+if (pool) {
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle database client', err);
+    process.exit(-1);
+  });
 
-pool.on('connect', () => {
-  console.log('Database client connected');
-});
+  pool.on('connect', () => {
+    console.log('Database client connected');
+  });
+}
 
-// Create Drizzle instance with schema
-export const db = drizzle(pool, { schema });
+// Create Drizzle instance with schema (only if pool exists)
+export const db = pool ? drizzle(pool, { schema }) : null as any;
 
 // Database health check
 export async function checkDatabaseHealth(): Promise<boolean> {
