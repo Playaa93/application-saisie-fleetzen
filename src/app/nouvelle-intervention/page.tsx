@@ -72,17 +72,26 @@ export default function NouvelleInterventionPage() {
     }
 
     setIsSubmitting(true);
-    const completeData = { ...formData, ...finalData };
+    const completeData = {
+      ...formData,
+      ...finalData,
+      type: typePrestation === 'lavage' ? 'Lavage Véhicule' :
+            typePrestation === 'carburant-livraison' ? 'Livraison Carburant' :
+            typePrestation === 'carburant-cuve' ? 'Remplissage Cuve' : null
+    };
 
     try {
       const formDataToSend = new FormData();
       Object.keys(completeData).forEach(key => {
-        if (key === 'photos' && Array.isArray(completeData[key])) {
-          completeData[key].forEach((photo: File, index: number) => {
+        const value = completeData[key];
+
+        if (key === 'photos' && Array.isArray(value)) {
+          value.forEach((photo: File, index: number) => {
             formDataToSend.append(`photo${index}`, photo);
           });
-        } else {
-          formDataToSend.append(key, completeData[key]);
+        } else if (value !== null && value !== undefined) {
+          // Ne pas ajouter les valeurs null/undefined
+          formDataToSend.append(key, value);
         }
       });
 
