@@ -76,6 +76,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Créer le client Supabase avec le service role key
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const formData = await request.formData();
 
     // Récupérer le type d'intervention en texte
