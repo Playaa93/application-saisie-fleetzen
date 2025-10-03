@@ -44,8 +44,8 @@ export default function InterventionHistoryPage() {
 
   const filteredInterventions = interventions.filter(intervention => {
     const matchesSearch =
-      intervention.vehicule.toLowerCase().includes(search.toLowerCase()) ||
-      intervention.client.toLowerCase().includes(search.toLowerCase())
+      (intervention.vehicule?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (intervention.client?.toLowerCase() || '').includes(search.toLowerCase())
 
     const matchesType = filterType === "all" || intervention.type === filterType
 
