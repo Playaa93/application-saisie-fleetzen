@@ -39,12 +39,12 @@ export default function PhotoUpload({ onChange, maxPhotos = 2 }: PhotoUploadProp
           multiple
           capture="environment"
           onChange={handleFileChange}
-          className="block w-full text-sm text-gray-500
+          className="block w-full text-sm text-muted-foreground
             file:mr-4 file:py-2 file:px-4
             file:rounded-full file:border-0
             file:text-sm file:font-semibold
-            file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100"
+            file:bg-primary/10 file:text-primary
+            hover:file:bg-primary/20"
         />
       </div>
 

@@ -95,12 +95,12 @@ export default function PhotoUploadMultiple({
           capture="environment"
           onChange={handleFileChange}
           disabled={files.length >= maxFiles}
-          className="block w-full text-sm text-gray-500
+          className="block w-full text-sm text-muted-foreground
             file:mr-4 file:py-2 file:px-4
             file:rounded-lg file:border-0
             file:text-sm file:font-semibold
-            file:bg-fleetzen-teal/10 file:text-fleetzen-teal-dark
-            hover:file:bg-fleetzen-teal/20
+            file:bg-primary/10 file:text-primary
+            hover:file:bg-primary/20
             disabled:opacity-50 disabled:cursor-not-allowed"
         />
 

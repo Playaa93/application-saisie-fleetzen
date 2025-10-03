@@ -58,9 +58,9 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
         {types.map((type) => (
           <label
             key={type.id}
-            className={`block p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-fleetzen-teal/50
+            className={`block p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary/50
               ${selectedType === type.id
-                ? 'border-fleetzen-teal bg-fleetzen-teal/5'
+                ? 'border-primary bg-primary/5'
                 : 'border-border hover:bg-accent'
               }`}
           >
@@ -73,13 +73,13 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
               className="sr-only"
             />
             <div className="flex items-center">
-              <div className="text-fleetzen-teal mr-4">{type.icon}</div>
+              <div className="text-primary mr-4">{type.icon}</div>
               <div className="flex-1">
                 <div className="font-semibold text-lg">{type.label}</div>
                 <div className="text-sm text-muted-foreground">{type.description}</div>
               </div>
               {selectedType === type.id && (
-                <svg className="w-6 h-6 text-fleetzen-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               )}
@@ -90,8 +90,8 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
         <button
           type="submit"
           disabled={!selectedType}
-          className="w-full mt-6 bg-fleetzen-teal text-white py-3 rounded-lg font-medium
-            hover:bg-fleetzen-teal-dark disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
+          className="w-full mt-6 bg-primary text-primary-foreground py-3 rounded-lg font-medium
+            hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         >
           Suivant →
         </button>

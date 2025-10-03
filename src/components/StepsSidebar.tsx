@@ -25,9 +25,9 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
                     ${step.number === currentStep
-                      ? 'bg-fleetzen-teal text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : step.completed
-                      ? 'bg-fleetzen-teal-dark text-white'
+                      ? 'bg-primary/90 text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
                     }`}
                 >
@@ -38,7 +38,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
                 {index < steps.length - 1 && (
                   <div
                     className={`w-0.5 h-8 ${
-                      step.completed ? 'bg-fleetzen-teal-dark' : 'bg-border'
+                      step.completed ? 'bg-primary/90' : 'bg-border'
                     }`}
                   />
                 )}
@@ -48,9 +48,9 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
               <div
                 className={`text-sm ${
                   step.number === currentStep
-                    ? 'text-fleetzen-teal font-semibold'
+                    ? 'text-primary font-semibold'
                     : step.completed
-                    ? 'text-fleetzen-teal-dark'
+                    ? 'text-primary/80'
                     : 'text-muted-foreground'
                 }`}
               >
@@ -70,9 +70,9 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold
                   ${step.number === currentStep
-                    ? 'bg-fleetzen-teal text-white'
+                    ? 'bg-primary text-primary-foreground'
                     : step.completed
-                    ? 'bg-fleetzen-teal-dark text-white'
+                    ? 'bg-primary/90 text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                   }`}
               >
@@ -83,7 +83,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
               {index < steps.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-2 ${
-                    step.completed ? 'bg-fleetzen-teal-dark' : 'bg-border'
+                    step.completed ? 'bg-primary/90' : 'bg-border'
                   }`}
                 />
               )}

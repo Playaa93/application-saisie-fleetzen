@@ -135,7 +135,7 @@ export default function InterventionHistoryPage() {
                           <span className="font-semibold">
                             {getInterventionLabel(intervention.type as InterventionType)}
                           </span>
-                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 text-xs font-medium rounded-full">
+                          <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
                             Terminé
                           </span>
                         </div>
