@@ -1,26 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Use same pattern as /api/clients which works
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
 export async function GET(request: NextRequest) {
   console.log('=== START GET /api/interventions ===');
 
   try {
-    // Get env vars inside function scope (not module level)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    // Runtime check for environment variables
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Missing environment variables');
-      return NextResponse.json({
-        error: 'Configuration error: Missing Supabase credentials'
-      }, { status: 500 });
-    }
-
-    console.log('✅ Environment variables OK');
-
-    // Create Supabase client
-    console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Ultra-simple query WITHOUT table joins to isolate the issue
@@ -66,19 +54,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get env vars inside function scope
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    // Runtime check for environment variables
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ POST: Missing environment variables');
-      return NextResponse.json({
-        error: 'Configuration error: Missing Supabase credentials'
-      }, { status: 500 });
-    }
-
-    // Créer le client Supabase avec le service role key
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const formData = await request.formData();
