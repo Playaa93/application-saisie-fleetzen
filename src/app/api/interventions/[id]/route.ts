@@ -3,9 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -40,7 +41,7 @@ export async function GET(
           email
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) {
