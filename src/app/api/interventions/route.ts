@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Module-level logging for debugging
+console.log('📦 Module loaded: /api/interventions/route.ts');
+console.log('📦 Env vars at module level:', {
+  hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+  hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  urlLength: process.env.NEXT_PUBLIC_SUPABASE_URL?.length || 0,
+  keyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0
+});
+
 // Remove non-null assertion to prevent module-level errors
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
