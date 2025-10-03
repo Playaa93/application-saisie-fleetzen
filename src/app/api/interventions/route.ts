@@ -6,6 +6,14 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🚀 GET /api/interventions called');
+    console.log('📋 Environment check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseKey: !!supabaseKey,
+      supabaseUrlLength: supabaseUrl?.length || 0,
+      supabaseKeyLength: supabaseKey?.length || 0
+    });
+
     // Get agent_id from query params (optional filter)
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agent_id');
