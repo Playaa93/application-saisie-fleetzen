@@ -1,9 +1,12 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useRouter } from "next/navigation"
 import { Droplet, Fuel, Container } from "lucide-react"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/mobile/MobileHeader"
+import { AppShell } from "@/components/mobile/AppShell"
 import type { InterventionType } from "@/types/intervention"
 
 const interventionTypes = [
@@ -38,7 +41,7 @@ export default function NewInterventionPage() {
   }
 
   return (
-    <>
+    <AppShell>
       <MobileHeader title="Nouvelle Intervention" showBack />
 
       <div className="p-4 space-y-4">
@@ -90,6 +93,6 @@ export default function NewInterventionPage() {
           })}
         </div>
       </div>
-    </>
+    </AppShell>
   )
 }

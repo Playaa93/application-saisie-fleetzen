@@ -12,6 +12,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    ppr: false,
   },
   // PWA Configuration
   async headers() {

@@ -1,8 +1,11 @@
 'use client';
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { AppShell } from "@/components/mobile/AppShell";
 
 interface Intervention {
   id: number;
@@ -50,8 +53,9 @@ export default function InterventionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <AppShell>
+      <div className="bg-gray-50 p-4">
+        <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Interventions</h1>
           <Link
@@ -140,7 +144,8 @@ export default function InterventionsPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

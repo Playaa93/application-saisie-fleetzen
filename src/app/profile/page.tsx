@@ -1,11 +1,14 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, Mail, Phone, MapPin, LogOut, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MobileHeader } from "@/components/mobile/MobileHeader"
+import { AppShell } from "@/components/mobile/AppShell"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -38,7 +41,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <>
+    <AppShell>
       <MobileHeader title="Profil" />
 
       <div className="p-4 space-y-6">
@@ -137,6 +140,6 @@ export default function ProfilePage() {
           <p className="mt-1">FleetZen v1.0.0</p>
         </div>
       </div>
-    </>
+    </AppShell>
   )
 }

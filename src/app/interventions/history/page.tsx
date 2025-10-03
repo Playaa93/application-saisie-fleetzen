@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Filter, Droplet, Fuel, Container } from "lucide-react"
@@ -7,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MobileHeader } from "@/components/mobile/MobileHeader"
+import { AppShell } from "@/components/mobile/AppShell"
 import { formatDateShort } from "@/lib/utils"
 import type { InterventionType, InterventionStatus } from "@/types/intervention"
 
@@ -101,7 +104,7 @@ export default function InterventionHistoryPage() {
   }
 
   return (
-    <>
+    <AppShell>
       <MobileHeader title="Historique" />
 
       <div className="p-4 space-y-4">
@@ -205,6 +208,6 @@ export default function InterventionHistoryPage() {
           )}
         </div>
       </div>
-    </>
+    </AppShell>
   )
 }

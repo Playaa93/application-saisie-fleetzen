@@ -1,8 +1,8 @@
 "use client"
 
-import { use } from "react"
 import { notFound } from "next/navigation"
 import { MobileHeader } from "@/components/mobile/MobileHeader"
+import { AppShell } from "@/components/mobile/AppShell"
 import { InterventionForm } from "@/components/interventions/InterventionForm"
 import type { InterventionType } from "@/types/intervention"
 
@@ -11,9 +11,9 @@ const validTypes: InterventionType[] = ["lavage", "carburant", "cuve"]
 export default function InterventionFormPage({
   params,
 }: {
-  params: Promise<{ type: string }>
+  params: { type: string }
 }) {
-  const { type } = use(params)
+  const { type } = params
 
   if (!validTypes.includes(type as InterventionType)) {
     notFound()
@@ -29,12 +29,12 @@ export default function InterventionFormPage({
   }
 
   return (
-    <>
+    <AppShell>
       <MobileHeader title={getTitle()} showBack />
 
       <div className="p-4">
         <InterventionForm type={type as InterventionType} />
       </div>
-    </>
+    </AppShell>
   )
 }
