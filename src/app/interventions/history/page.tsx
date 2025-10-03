@@ -32,13 +32,35 @@ export default function InterventionHistoryPage() {
 
   useEffect(() => {
     fetch('/api/interventions')
-      .then(res => res.json())
+      .then(async res => {
+        console.log('📡 Response status:', res.status, res.statusText);
+        console.log('📡 Response headers:', Object.fromEntries(res.headers.entries()));
+
+        const contentType = res.headers.get('content-type');
+        console.log('📡 Content-Type:', contentType);
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error('❌ Response not OK:', text);
+          throw new Error(`HTTP ${res.status}: ${text.substring(0, 200)}`);
+        }
+
+        if (!contentType?.includes('application/json')) {
+          const text = await res.text();
+          console.error('❌ Not JSON response:', text.substring(0, 500));
+          throw new Error('La réponse n\'est pas du JSON');
+        }
+
+        return res.json();
+      })
       .then(data => {
+        console.log('✅ Interventions loaded:', data.length);
         setInterventions(data)
         setLoading(false)
       })
       .catch(err => {
-        console.error('Erreur chargement interventions:', err)
+        console.error('❌ Erreur chargement interventions:', err)
+        console.error('❌ Error details:', err.message, err.stack);
         setLoading(false)
       })
   }, [])
