@@ -15,8 +15,8 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
   return (
     <>
       {/* Desktop Sidebar - Vertical */}
-      <div className="hidden md:block w-48 bg-white border-r border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-500 mb-6">Progression</h3>
+      <div className="hidden md:block w-48 bg-card border-r border-border p-6">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-6">Progression</h3>
         <div className="space-y-4">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
@@ -28,7 +28,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
                       ? 'bg-fleetzen-teal text-white'
                       : step.completed
                       ? 'bg-fleetzen-teal-dark text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      : 'bg-muted text-muted-foreground'
                     }`}
                 >
                   {step.completed ? '✓' : step.number}
@@ -38,7 +38,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
                 {index < steps.length - 1 && (
                   <div
                     className={`w-0.5 h-8 ${
-                      step.completed ? 'bg-fleetzen-teal-dark' : 'bg-gray-200'
+                      step.completed ? 'bg-fleetzen-teal-dark' : 'bg-border'
                     }`}
                   />
                 )}
@@ -51,7 +51,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
                     ? 'text-fleetzen-teal font-semibold'
                     : step.completed
                     ? 'text-fleetzen-teal-dark'
-                    : 'text-gray-500'
+                    : 'text-muted-foreground'
                 }`}
               >
                 {step.label}
@@ -62,7 +62,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
       </div>
 
       {/* Mobile Progress - Horizontal */}
-      <div className="md:hidden bg-white border-b border-gray-200 p-4">
+      <div className="md:hidden bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center flex-1">
@@ -73,7 +73,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
                     ? 'bg-fleetzen-teal text-white'
                     : step.completed
                     ? 'bg-fleetzen-teal-dark text-white'
-                    : 'bg-gray-200 text-gray-500'
+                    : 'bg-muted text-muted-foreground'
                   }`}
               >
                 {step.completed ? '✓' : step.number}
@@ -83,7 +83,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
               {index < steps.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-2 ${
-                    step.completed ? 'bg-fleetzen-teal-dark' : 'bg-gray-200'
+                    step.completed ? 'bg-fleetzen-teal-dark' : 'bg-border'
                   }`}
                 />
               )}
@@ -92,7 +92,7 @@ export default function StepsSidebar({ steps, currentStep }: StepsSidebarProps) 
         </div>
 
         {/* Current step label on mobile */}
-        <div className="mt-3 text-center text-sm font-medium text-gray-700">
+        <div className="mt-3 text-center text-sm font-medium text-foreground">
           {steps[currentStep - 1]?.label}
         </div>
       </div>

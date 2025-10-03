@@ -50,9 +50,9 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+    <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
       <h2 className="text-2xl font-bold mb-2">Type de prestation</h2>
-      <p className="text-gray-600 mb-6">Sélectionnez le type d'intervention à effectuer</p>
+      <p className="text-muted-foreground mb-6">Sélectionnez le type d'intervention à effectuer</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {types.map((type) => (
@@ -61,7 +61,7 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
             className={`block p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-fleetzen-teal/50
               ${selectedType === type.id
                 ? 'border-fleetzen-teal bg-fleetzen-teal/5'
-                : 'border-gray-200 hover:bg-gray-50'
+                : 'border-border hover:bg-accent'
               }`}
           >
             <input
@@ -76,7 +76,7 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
               <div className="text-fleetzen-teal mr-4">{type.icon}</div>
               <div className="flex-1">
                 <div className="font-semibold text-lg">{type.label}</div>
-                <div className="text-sm text-gray-600">{type.description}</div>
+                <div className="text-sm text-muted-foreground">{type.description}</div>
               </div>
               {selectedType === type.id && (
                 <svg className="w-6 h-6 text-fleetzen-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +91,7 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
           type="submit"
           disabled={!selectedType}
           className="w-full mt-6 bg-fleetzen-teal text-white py-3 rounded-lg font-medium
-            hover:bg-fleetzen-teal-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            hover:bg-fleetzen-teal-dark disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         >
           Suivant →
         </button>

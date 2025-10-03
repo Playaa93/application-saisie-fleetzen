@@ -104,7 +104,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
     });
 
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Renseignement clients</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
           <SearchableCombobox
@@ -264,14 +264,14 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   // Étape 2: Carburant livré
   if (currentStep === 2) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Carburant livré</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Type de carburant *</label>
             <div className="space-y-2">
               {['Diesel', 'AdBlue', 'GNR'].map(type => (
-                <label key={type} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <label key={type} className="flex items-center p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
                   <input
                     type="checkbox"
                     checked={data.carburant?.[type] || false}
@@ -323,7 +323,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   // Étape 3: Photos
   if (currentStep === 3) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Photos</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
           <PhotoUploadMultiple label="Photo avant" helperText="Si remplissage: photo de la jauge" maxFiles={5} onChange={(files) => setData({ ...data, photosAvant: files })} value={data.photosAvant} />
@@ -340,7 +340,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   // Étape 4: Validation
   if (currentStep === 4) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Commentaires et validation</h2>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(data); }} className="space-y-6">
           <div>

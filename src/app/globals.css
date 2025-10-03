@@ -4,48 +4,82 @@
 
 @layer base {
   :root {
+    /* Vercel-inspired neutral palette */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 9%;
+
+    /* Cards with subtle borders like Vercel */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 9%;
+
+    /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 174 64% 40%;
+    --popover-foreground: 0 0% 9%;
+
+    /* FleetZen teal as primary accent */
+    --primary: 174 64% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 174 44% 96%;
-    --secondary-foreground: 174 64% 20%;
-    --muted: 174 20% 96%;
-    --muted-foreground: 174 10% 46%;
-    --accent: 174 44% 96%;
-    --accent-foreground: 174 64% 20%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 174 20% 91%;
-    --input: 174 20% 91%;
-    --ring: 174 64% 40%;
-    --radius: 0.75rem;
+
+    /* Subtle gray secondary like Vercel */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+
+    /* Muted backgrounds */
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 45%;
+
+    /* Accent hover states */
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+
+    /* Error states */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Vercel-style thin borders */
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+
+    /* FleetZen teal focus ring */
+    --ring: 174 64% 45%;
+
+    /* Subtle rounded corners like Vercel */
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 174 40% 6%;
-    --foreground: 174 10% 98%;
-    --card: 174 40% 8%;
-    --card-foreground: 174 10% 98%;
-    --popover: 174 40% 8%;
-    --popover-foreground: 174 10% 98%;
-    --primary: 174 64% 50%;
-    --primary-foreground: 174 40% 10%;
-    --secondary: 174 30% 15%;
-    --secondary-foreground: 174 10% 98%;
-    --muted: 174 30% 15%;
-    --muted-foreground: 174 15% 65%;
-    --accent: 174 30% 15%;
-    --accent-foreground: 174 10% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 174 10% 98%;
-    --border: 174 30% 20%;
-    --input: 174 30% 20%;
-    --ring: 174 64% 50%;
+    /* Vercel dark mode: true black background */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+
+    /* Dark cards with subtle borders */
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Brighter FleetZen teal in dark mode */
+    --primary: 174 70% 50%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 0 0% 10%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Dark borders like Vercel */
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+
+    --ring: 174 70% 50%;
   }
 }
 
@@ -54,8 +88,28 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-smooth: always;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Vercel-style typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl;
   }
 }
 

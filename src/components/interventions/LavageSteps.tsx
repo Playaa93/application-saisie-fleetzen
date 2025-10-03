@@ -147,7 +147,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
   // Étape 1: Prestation lavage
   if (currentStep === 1) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Prestation lavage</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }}>
           <div className="space-y-4">
@@ -155,7 +155,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
               <label
                 key={option}
                 className={`block p-4 border-2 rounded-lg cursor-pointer transition
-                  ${data.prestationLavage === option ? 'border-fleetzen-teal bg-fleetzen-teal/5' : 'border-gray-200 hover:bg-gray-50'}`}
+                  ${data.prestationLavage === option ? 'border-fleetzen-teal bg-fleetzen-teal/5' : 'border-border hover:bg-accent'}`}
               >
                 <input
                   type="radio"
@@ -178,7 +178,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
             ))}
           </div>
           <div className="flex gap-4 mt-6">
-            <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg hover:bg-gray-50">
+            <button type="button" onClick={onPrevious} className="px-6 py-3 border border-border rounded-lg hover:bg-accent">
               ← Retour
             </button>
             <button type="submit" className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark">
@@ -204,7 +204,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
     });
 
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Renseignement clients</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
           <SearchableCombobox
@@ -318,7 +318,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
 
               {/* Message si aucun véhicule de cette catégorie */}
               {tracteurVehicles.length === 0 && !loadingTracteurs && (
-                <p className="text-sm text-orange-600 mt-1">
+                <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
                   ⚠️ Aucun {data.typeVehicule === 'Porteur' ? 'porteur' : 'tracteur'} trouvé pour ce client. Utilisez "Saisie manuelle".
                 </p>
               )}
@@ -362,14 +362,14 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
 
                   {/* Message si aucune remorque trouvée */}
                   {remorqueVehicles.length === 0 && !loadingRemorques && (
-                    <p className="text-sm text-orange-600 mt-1">
+                    <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
                       ⚠️ Aucune remorque trouvée pour ce client. Utilisez "Saisie manuelle".
                     </p>
                   )}
                 </>
               ) : (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">⚠️ Veuillez d'abord sélectionner un client</p>
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-300">⚠️ Veuillez d'abord sélectionner un client</p>
                 </div>
               )}
 
@@ -400,7 +400,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
   // Étape 3: Photos
   if (currentStep === 3) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Photos</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
           <PhotoUploadMultiple
@@ -429,7 +429,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
   // Étape 4: Validation
   if (currentStep === 4) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Commentaires et validation</h2>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(data); }} className="space-y-6">
           <div>

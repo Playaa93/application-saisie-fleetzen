@@ -18,14 +18,14 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
   // Étape 1: Remplissage de la cuve
   if (currentStep === 1) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Remplissage de la cuve</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Carburant chargé *</label>
             <div className="space-y-2">
               {['Diesel', 'AdBlue', 'GNR'].map(type => (
-                <label key={type} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <label key={type} className="flex items-center p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
                   <input
                     type="checkbox"
                     checked={data.carburant?.[type] || false}
@@ -57,7 +57,7 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
               placeholder="1.50"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">Utiliser le "." et non la virgule comme séparateur</p>
+            <p className="text-xs text-muted-foreground mt-1">Utiliser le "." et non la virgule comme séparateur</p>
           </div>
 
           <PhotoUploadMultiple
@@ -107,7 +107,7 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
   // Étape 2: Validation
   if (currentStep === 2) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Commentaires et validation</h2>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(data); }} className="space-y-6">
           <div>

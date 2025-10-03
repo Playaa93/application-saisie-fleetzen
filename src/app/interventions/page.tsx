@@ -46,7 +46,7 @@ export default function InterventionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <p>Chargement...</p>
       </div>
     );
@@ -54,7 +54,7 @@ export default function InterventionsPage() {
 
   return (
     <AppShell>
-      <div className="bg-gray-50 p-4">
+      <div className="bg-background p-4">
         <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Interventions</h1>
@@ -67,11 +67,11 @@ export default function InterventionsPage() {
         </div>
 
         {interventions.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500 mb-4">Aucune intervention enregistrée</p>
+          <div className="bg-card rounded-lg border border-border p-8 text-center">
+            <p className="text-muted-foreground mb-4">Aucune intervention enregistrée</p>
             <Link
               href="/nouvelle-intervention"
-              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90"
             >
               Créer la première intervention
             </Link>
@@ -79,13 +79,13 @@ export default function InterventionsPage() {
         ) : (
           <div className="space-y-4">
             {interventions.map((intervention) => (
-              <div key={intervention.id} className="bg-white rounded-lg shadow p-4">
+              <div key={intervention.id} className="bg-card rounded-lg border border-border p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <div className="text-lg font-semibold">
                       {getTypeLabel(intervention.type)}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {new Date(intervention.creeLe).toLocaleDateString('fr-FR', {
                         day: '2-digit',
                         month: '2-digit',
@@ -99,23 +99,23 @@ export default function InterventionsPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                   <div>
-                    <span className="text-gray-600">Client:</span>{' '}
+                    <span className="text-muted-foreground">Client:</span>{' '}
                     <span className="font-medium">{intervention.client}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Véhicule:</span>{' '}
+                    <span className="text-muted-foreground">Véhicule:</span>{' '}
                     <span className="font-medium">{intervention.vehicule}</span>
                   </div>
                   {intervention.kilometres && (
                     <div>
-                      <span className="text-gray-600">Km:</span>{' '}
+                      <span className="text-muted-foreground">Km:</span>{' '}
                       <span className="font-medium">{intervention.kilometres}</span>
                     </div>
                   )}
                 </div>
 
                 {intervention.notes && (
-                  <p className="text-sm text-gray-700 mb-3 italic">
+                  <p className="text-sm text-foreground mb-3 italic">
                     {intervention.notes}
                   </p>
                 )}
@@ -124,7 +124,7 @@ export default function InterventionsPage() {
                 {intervention.photos && intervention.photos.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     {intervention.photos.map((photo) => (
-                      <div key={photo.id} className="relative h-32 rounded overflow-hidden border">
+                      <div key={photo.id} className="relative h-32 rounded overflow-hidden border border-border">
                         <Image
                           src={photo.url}
                           alt={`Photo ${photo.type}`}

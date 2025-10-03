@@ -4,11 +4,11 @@ export const dynamic = 'force-dynamic'
 
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
           <svg
-            className="mx-auto h-24 w-24 text-gray-400"
+            className="mx-auto h-24 w-24 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -22,17 +22,17 @@ export default function OfflinePage() {
           </svg>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-4">
           You're Offline
         </h1>
 
-        <p className="text-lg text-gray-600 mb-8">
+        <p className="text-lg text-muted-foreground mb-8">
           This page is not available offline. Please check your internet connection and try again.
         </p>
 
         <button
           onClick={() => window.location.reload()}
-          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
         >
           <svg
             className="mr-2 h-5 w-5"
@@ -50,10 +50,10 @@ export default function OfflinePage() {
           Retry
         </button>
 
-        <div className="mt-8 text-sm text-gray-500">
+        <div className="mt-8 text-sm text-muted-foreground">
           <p>Some features may still be available offline.</p>
           <p className="mt-2">
-            <a href="/" className="text-blue-600 hover:text-blue-800">
+            <a href="/" className="text-primary hover:text-primary/80">
               Return to home page
             </a>
           </p>

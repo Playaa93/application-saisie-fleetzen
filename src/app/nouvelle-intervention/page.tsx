@@ -9,6 +9,7 @@ import Step1TypePrestation from '@/components/interventions/Step1TypePrestation'
 import LavageSteps from '@/components/interventions/LavageSteps';
 import CarburantLivraisonSteps from '@/components/interventions/CarburantLivraisonSteps';
 import CarburantCuveSteps from '@/components/interventions/CarburantCuveSteps';
+import { HomeButton } from '@/components/mobile/HomeButton';
 
 export default function NouvelleInterventionPage() {
   const router = useRouter();
@@ -107,7 +108,8 @@ export default function NouvelleInterventionPage() {
   const steps = getSteps();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      <HomeButton />
       {/* Sidebar de progression */}
       <StepsSidebar steps={steps} currentStep={currentStep} />
 
