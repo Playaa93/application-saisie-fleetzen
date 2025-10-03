@@ -1,20 +1,26 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { BottomNav } from '@/components/mobile/BottomNav';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center p-4 pb-16">
-      <div className="bg-card rounded-2xl border border-border shadow-2xl p-8 max-w-md w-full text-center">
-        <div className="flex items-center justify-center mb-2">
-          <svg className="w-10 h-10 text-primary mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <h1 className="text-3xl font-bold text-primary">FleetZen</h1>
-        </div>
-        <p className="text-muted-foreground mb-8">Suivi des interventions</p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-4 pb-16">
+      {/* Logo FleetZen en haut */}
+      <div className="absolute top-8">
+        <Image
+          src="/logo-fleetzen.svg"
+          alt="FleetZen Logo"
+          width={280}
+          height={280}
+          priority
+        />
+      </div>
 
+      {/* Carte principale - centrée verticalement */}
+      <div className="bg-card rounded-2xl border border-border shadow-2xl p-8 max-w-md w-full text-center">
+        <h1 className="text-2xl font-semibold text-foreground mb-8">Suivi des interventions</h1>
         <div className="space-y-4">
           <Link
             href="/nouvelle-intervention"
