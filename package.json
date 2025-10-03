@@ -23,8 +23,7 @@
     "db:seed": "tsx src/db/seed.ts",
     "preview": "npm run build && wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy",
-    "build:next": "next build",
-    "postbuild": "node ci/sync-dist.js"
+    "build:next": "next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
