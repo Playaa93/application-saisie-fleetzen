@@ -6,98 +6,74 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function GET(request: NextRequest) {
-  try {
-    console.log('🚀 GET /api/interventions called');
+  console.log('=== START GET /api/interventions ===');
 
+  try {
     // Runtime check for environment variables
     if (!supabaseUrl || !supabaseKey) {
       console.error('❌ Missing environment variables:', {
         hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey,
-        urlValue: supabaseUrl ? '[PRESENT]' : '[MISSING]',
-        keyValue: supabaseKey ? '[PRESENT]' : '[MISSING]'
+        hasKey: !!supabaseKey
       });
       return NextResponse.json({
         error: 'Configuration error: Missing Supabase credentials',
-        details: {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseKey
-        }
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey
       }, { status: 500 });
     }
 
-    console.log('📋 Environment check:', {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasSupabaseKey: !!supabaseKey,
-      supabaseUrlLength: supabaseUrl?.length || 0,
-      supabaseKeyLength: supabaseKey?.length || 0
-    });
+    console.log('✅ Environment variables OK');
 
-    // Get agent_id from query params (optional filter)
-    const { searchParams } = new URL(request.url);
-    const agentId = searchParams.get('agent_id');
-    const myInterventions = searchParams.get('my') === 'true';
-
-    // Get authenticated user if filtering by "my interventions"
-    let currentUserId: string | null = null;
-    if (myInterventions) {
-      const token = request.cookies.get('sb-access-token')?.value ||
-                    request.headers.get('authorization')?.replace('Bearer ', '');
-
-      if (token) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: { user } } = await supabase.auth.getUser(token);
-        currentUserId = user?.id || null;
-      }
-    }
-
+    // Create Supabase client
+    console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Build query with optional agent filter
-    let query = supabase
+    // Simple query without complex filtering
+    console.log('Querying interventions...');
+    const { data, error } = await supabase
       .from('interventions')
       .select(`
-        *,
+        id,
+        created_at,
+        status,
+        notes,
         intervention_types (name),
         clients (name),
-        vehicles (license_plate, make, model),
-        agents (first_name, last_name)
+        vehicles (license_plate, make, model)
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-    // Apply agent filter if specified
-    if (agentId) {
-      query = query.eq('agent_id', agentId);
-    } else if (myInterventions && currentUserId) {
-      query = query.eq('agent_id', currentUserId);
+    if (error) {
+      console.error('❌ Supabase query error:', error);
+      throw error;
     }
 
-    const { data, error } = await query;
+    console.log(`✅ Found ${data?.length || 0} interventions`);
 
-    if (error) throw error;
-
-    // Mapper les champs pour compatibilité frontend
-    const interventions = data.map(intervention => ({
+    // Simple mapping
+    const interventions = (data || []).map(intervention => ({
       id: intervention.id,
       type: intervention.intervention_types?.name || '',
       client: intervention.clients?.name || '',
-      vehicule: intervention.vehicles?.license_plate ?
-        `${intervention.vehicles.license_plate} - ${intervention.vehicles.make} ${intervention.vehicles.model}` : '',
-      agent: intervention.agents ?
-        `${intervention.agents.first_name} ${intervention.agents.last_name}` : 'Non assigné',
-      agentId: intervention.agent_id,
-      kilometres: null, // Pas de champ kilomètres dans la table
-      notes: intervention.notes,
+      vehicule: intervention.vehicles?.license_plate || '',
       status: intervention.status,
       creeLe: intervention.created_at,
-      photos: [] // Pas encore implémenté
     }));
 
+    console.log('=== GET SUCCESS ===');
     return NextResponse.json(interventions);
+
   } catch (error) {
-    console.error('❌ Error fetching interventions:', error);
-    console.error('📋 Full error:', JSON.stringify(error, null, 2));
-    return NextResponse.json({ error: 'Erreur de récupération' }, { status: 500 });
+    console.error('=== ERROR in GET ===', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    return NextResponse.json({
+      error: 'Internal server error',
+      message: errorMessage,
+      stack: errorStack?.split('\n').slice(0, 3).join('\n')
+    }, { status: 500 });
   }
 }
 
