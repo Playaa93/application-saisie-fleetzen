@@ -23,21 +23,35 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implement actual authentication
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Call Supabase Auth API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-      // Mock validation
-      if (email && password) {
-        // Store auth token (mock)
-        localStorage.setItem("authToken", "mock-token")
-        localStorage.setItem("agentName", email.split("@")[0])
+      const result = await response.json()
 
-        router.push("/")
-      } else {
-        setError("Email et mot de passe requis")
+      if (!response.ok || !result.success) {
+        setError(result.error || 'Erreur de connexion')
+        return
       }
-    } catch {
+
+      // Store session data
+      localStorage.setItem('sb-access-token', result.data.session.access_token)
+      localStorage.setItem('sb-refresh-token', result.data.session.refresh_token)
+      localStorage.setItem('agent', JSON.stringify(result.data.user))
+
+      // Store in cookie for middleware
+      document.cookie = `sb-access-token=${result.data.session.access_token}; path=/; max-age=${result.data.session.expires_in}`
+
+      // Redirect to home
+      router.push("/")
+      router.refresh()
+    } catch (err) {
+      console.error('Login error:', err)
       setError("Erreur de connexion. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
