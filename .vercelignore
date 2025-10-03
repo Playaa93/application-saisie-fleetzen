@@ -1,19 +1,75 @@
-# Scripts de migration
-scripts/
+# Claude Code & Flow artifacts
+.claude/
+.claude.backup-*/
+.claude-flow/
+claude-flow.cmd
+.hive-mind/
+.swarm/
+memory/
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
 
-# Documentation
-docs/
+# Cloudflare artifacts
+.wrangler/
+wrangler.toml
+.dev.vars
+CLOUDFLARE-DEPLOY.md
 
-# Fichiers de développement
-*.md
-!README.md
+# Netlify artifacts
+.netlify/
+netlify.toml
 
-# Tests
+# Development & Testing
 tests/
+__tests__/
+__mocks__/
+scripts/
+config/
+.github/
+.husky/
+coverage/
+.nyc_output/
 *.test.ts
 *.test.tsx
+*.spec.ts
+*.spec.tsx
+playwright.config.js
+jest.config.js
+.nycrc.json
 
-# Claude Code
-.claude/
-memory/
-coordination/
+# Documentation (large files)
+docs/architecture-analysis-*.md
+docs/api/
+
+# Build artifacts
+out/
+.next/cache/
+.next/standalone/OneDrive/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+nul
+*.tmp
+.eslintcache
+.prettierignore
+tsconfig.tsbuildinfo
+.eslintrc.security.json
