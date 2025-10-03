@@ -215,93 +215,6 @@ export default function InterventionDetailPage() {
           </Card>
         )}
 
-        {/* Localisation */}
-        {((intervention.coordinates?.latitude && intervention.coordinates?.longitude) ||
-          (intervention.metadata?.latitude && intervention.metadata?.longitude)) && (() => {
-          // Extraire coordonnées GPS
-          const lat = parseFloat(intervention.coordinates?.latitude || intervention.metadata?.latitude);
-          const lng = parseFloat(intervention.coordinates?.longitude || intervention.metadata?.longitude);
-          const accuracy = parseFloat(intervention.locationAccuracy || intervention.metadata?.gpsAccuracy || 0);
-
-          return (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Localisation
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Carte interactive */}
-                <InterventionMap
-                  latitude={lat}
-                  longitude={lng}
-                  address={address || undefined}
-                  accuracy={accuracy || undefined}
-                  className="h-64 w-full rounded-lg mb-3"
-                />
-
-                {/* Adresse géocodée */}
-                {geocoding ? (
-                  <p className="text-sm text-muted-foreground">Chargement de l'adresse...</p>
-                ) : address ? (
-                  <p className="text-sm font-medium">{address}</p>
-                ) : (
-                  <p className="text-sm">
-                    {lat.toFixed(6)}, {lng.toFixed(6)}
-                  </p>
-                )}
-
-                {/* Précision GPS */}
-                {accuracy > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Précision: ±{accuracy.toFixed(1)}m
-                  </p>
-                )}
-
-                {/* Boutons de navigation */}
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    asChild
-                  >
-                    <a
-                      href={getGoogleMapsUrl(lat, lng)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Navigation className="w-4 h-4 mr-2" />
-                      Google Maps
-                    </a>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    asChild
-                  >
-                    <a
-                      href={getWazeUrl(lat, lng)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Navigation className="w-4 h-4 mr-2" />
-                      Waze
-                    </a>
-                  </Button>
-                </div>
-
-                {/* Coordonnées brutes en petit */}
-                <p className="text-xs text-muted-foreground pt-2">
-                  Coordonnées: {lat.toFixed(6)}, {lng.toFixed(6)}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
         {/* Métadonnées (données du formulaire) */}
         {intervention.metadata && Object.keys(intervention.metadata).length > 0 && (
           <Card>
@@ -313,14 +226,28 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {Object.entries(intervention.metadata).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground capitalize">
-                      {key.replace(/_/g, ' ')}:
-                    </span>
-                    <span className="font-medium">{String(value)}</span>
-                  </div>
-                ))}
+                {Object.entries(intervention.metadata)
+                  .filter(([key, value]) => {
+                    // Exclude GPS fields (already in map section)
+                    if (['latitude', 'longitude', 'gpsAccuracy', 'gpsCapturedAt'].includes(key)) return false;
+                    // Exclude vehicle fields (already in vehicle section)
+                    if (['vehicle', 'vehicule', 'typeVehicule', 'vehicleCategory'].includes(key)) return false;
+                    // Exclude empty/null values
+                    if (value === null || value === '' || value === undefined) return false;
+                    // Exclude photo objects (already displayed separately)
+                    if (key.toLowerCase().includes('photo')) return false;
+                    // Exclude siteAutre and clientAutre if empty
+                    if ((key === 'siteAutre' || key === 'clientAutre') && !value) return false;
+                    return true;
+                  })
+                  .map(([key, value]) => (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground capitalize">
+                        {key.replace(/_/g, ' ')}:
+                      </span>
+                      <span className="font-medium">{String(value)}</span>
+                    </div>
+                  ))}
               </div>
             </CardContent>
           </Card>
@@ -539,6 +466,93 @@ export default function InterventionDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Localisation */}
+        {((intervention.coordinates?.latitude && intervention.coordinates?.longitude) ||
+          (intervention.metadata?.latitude && intervention.metadata?.longitude)) && (() => {
+          // Extraire coordonnées GPS
+          const lat = parseFloat(intervention.coordinates?.latitude || intervention.metadata?.latitude);
+          const lng = parseFloat(intervention.coordinates?.longitude || intervention.metadata?.longitude);
+          const accuracy = parseFloat(intervention.locationAccuracy || intervention.metadata?.gpsAccuracy || 0);
+
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Localisation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Carte interactive */}
+                <InterventionMap
+                  latitude={lat}
+                  longitude={lng}
+                  address={address || undefined}
+                  accuracy={accuracy || undefined}
+                  className="h-48 w-full rounded-lg mb-3"
+                />
+
+                {/* Adresse géocodée */}
+                {geocoding ? (
+                  <p className="text-sm text-muted-foreground">Chargement de l'adresse...</p>
+                ) : address ? (
+                  <p className="text-sm font-medium">{address}</p>
+                ) : (
+                  <p className="text-sm">
+                    {lat.toFixed(6)}, {lng.toFixed(6)}
+                  </p>
+                )}
+
+                {/* Précision GPS */}
+                {accuracy > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Précision: ±{accuracy.toFixed(1)}m
+                  </p>
+                )}
+
+                {/* Boutons de navigation */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    asChild
+                  >
+                    <a
+                      href={getGoogleMapsUrl(lat, lng)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Google Maps
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    asChild
+                  >
+                    <a
+                      href={getWazeUrl(lat, lng)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Waze
+                    </a>
+                  </Button>
+                </div>
+
+                {/* Coordonnées brutes en petit */}
+                <p className="text-xs text-muted-foreground pt-2">
+                  Coordonnées: {lat.toFixed(6)}, {lng.toFixed(6)}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Actions */}
         <div className="flex gap-3">
