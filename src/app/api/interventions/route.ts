@@ -497,9 +497,23 @@ export async function POST(request: NextRequest) {
       photoTicketUploaded: photoTicketUrls.length
     });
   } catch (error) {
-    console.error('Error creating intervention:', error);
+    console.error('❌ Error creating intervention:', error);
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
+    // Return detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+    const errorDetails = error instanceof Error ? {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n') // First 3 lines only
+    } : { raw: String(error) };
+
     return NextResponse.json({
-      error: 'Erreur lors de la création de l\'intervention'
+      error: 'Erreur lors de la création de l\'intervention',
+      message: errorMessage,
+      details: errorDetails,
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }
