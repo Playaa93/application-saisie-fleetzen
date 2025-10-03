@@ -4,20 +4,38 @@ This configuration combines: Next.js 15, shadcn/ui
 
 ---
 
+## 🚨 IMPORTANT: Project Documentation
+
+**ALWAYS consult CHANGELOG.md before starting any work** to understand recent changes, current architecture, and ongoing development patterns.
+
+## MCP Tools Available
+
+This project has access to **Supabase MCP** for direct database operations:
+- `mcp__supabase__execute_sql` - Execute SQL queries
+- `mcp__supabase__apply_migration` - Apply database migrations
+- `mcp__supabase__list_tables` - List database tables
+- `mcp__supabase__search_docs` - Search Supabase documentation
+
+**Use MCP tools for all database operations** - they are faster and more reliable than manual SQL scripts.
+
 ## Project Context
 
 *Combined from: Next.js 15, shadcn/ui*
 
-This is a comprehensive project that combines multiple technologies:
+This is **FleetZen** - A PWA application for fleet intervention management with:
 
-This is a Next.js 15 application using:
-
-- **App Router** (not Pages Router)
-- **React 19** with Server Components by default
+- **Next.js 15** with App Router
+- **React 19** with Server Components
 - **TypeScript** for type safety
-- **Tailwind CSS** for styling (if configured)
-- **Server Actions** for mutations
-- **Turbopack** for faster builds (optional)
+- **Supabase** for database and authentication
+- **Tailwind CSS** + **shadcn/ui** for UI components
+- **PWA** with offline-first architecture
+
+Key Features:
+- **Cascading filters** for vehicle selection (Client → Site → Category → Vehicle)
+- **Dynamic intervention forms** (Lavage, Carburant Livraison, Carburant Cuve)
+- **Photo capture** with compression and upload
+- **Offline sync** capabilities
 
 This is a shadcn/ui project focused on:
 

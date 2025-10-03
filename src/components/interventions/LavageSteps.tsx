@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import PhotoUploadMultiple from '@/components/PhotoUploadMultiple';
 import SearchableCombobox from '@/components/SearchableCombobox';
+import { AddVehicleDialog } from '@/components/AddVehicleDialog';
 
 interface LavageStepsProps {
   currentStep: number;
@@ -24,27 +25,23 @@ interface Vehicle {
   license_plate: string;
   make: string;
   model: string;
+  work_site?: string;
+  vehicle_category?: string;
 }
-
-const sites = [
-  'ITM - PMS', 'LIDL - Coudray', 'LIDL - Barbery',
-  'LIDL - Meaux', 'LIDL - Chanteloup', 'STG - STO', 'Autre'
-];
-
-const typesVehicule = [
-  'Ensemble complet', 'Porteur', 'Tracteur seul', 'Remorque seule', 'Autre'
-];
 
 export default function LavageSteps({ currentStep, formData, onNext, onPrevious, onSubmit, isSubmitting = false }: LavageStepsProps) {
   const [data, setData] = useState(formData);
   const [clients, setClients] = useState<Client[]>([]);
+  const [sites, setSites] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [tracteurVehicles, setTracteurVehicles] = useState<Vehicle[]>([]);
-  const [remorqueVehicles, setRemorqueVehicles] = useState<Vehicle[]>([]);
+
   const [loadingClients, setLoadingClients] = useState(true);
+  const [loadingSites, setLoadingSites] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
-  const [loadingTracteurs, setLoadingTracteurs] = useState(false);
-  const [loadingRemorques, setLoadingRemorques] = useState(false);
+
+  const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
 
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
@@ -70,79 +67,93 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
     fetchClients();
   }, []);
 
-  // Charger les véhicules quand un client est sélectionné
+  // CASCADE 1: Charger les sites quand un client est sélectionné
   useEffect(() => {
     if (data.clientId) {
+      setLoadingSites(true);
+      const fetchSites = async () => {
+        try {
+          const response = await fetch(`/api/sites?clientId=${data.clientId}`);
+          const result = await response.json();
+          if (result.success) {
+            setSites([...result.sites, 'Autre']);
+          }
+        } catch (error) {
+          console.error('Error fetching sites:', error);
+          setSites(['Autre']);
+        } finally {
+          setLoadingSites(false);
+        }
+      };
+      fetchSites();
+      // Reset des champs dépendants
+      setData(prev => ({ ...prev, siteTravail: '', siteAutre: '', typeVehicule: '', vehicleId: null }));
+      setCategories([]);
+      setVehicles([]);
+    } else {
+      setSites([]);
+      setCategories([]);
+      setVehicles([]);
+    }
+  }, [data.clientId]);
+
+  // CASCADE 2: Charger les catégories quand client + site sont sélectionnés
+  useEffect(() => {
+    if (data.clientId && data.siteTravail && data.siteTravail !== 'Autre') {
+      setLoadingCategories(true);
+      const fetchCategories = async () => {
+        try {
+          const response = await fetch(`/api/vehicle-categories?clientId=${data.clientId}&site=${data.siteTravail}`);
+          const result = await response.json();
+          if (result.success) {
+            // Capitaliser la première lettre de chaque catégorie
+            const capitalizedCategories = result.categories.map((cat: string) =>
+              cat.charAt(0).toUpperCase() + cat.slice(1)
+            );
+            setCategories([...capitalizedCategories, 'Autre']);
+          }
+        } catch (error) {
+          console.error('Error fetching categories:', error);
+          setCategories(['Autre']);
+        } finally {
+          setLoadingCategories(false);
+        }
+      };
+      fetchCategories();
+      // Reset des champs dépendants
+      setData(prev => ({ ...prev, typeVehicule: '', vehicleId: null }));
+      setVehicles([]);
+    } else {
+      setCategories([]);
+      setVehicles([]);
+    }
+  }, [data.clientId, data.siteTravail]);
+
+  // CASCADE 3: Charger les véhicules quand client + site + catégorie sont sélectionnés
+  useEffect(() => {
+    if (data.clientId && data.siteTravail && data.siteTravail !== 'Autre' && data.typeVehicule && data.typeVehicule !== 'Autre') {
       setLoadingVehicles(true);
       const fetchVehicles = async () => {
         try {
-          const response = await fetch(`/api/vehicles?clientId=${data.clientId}`);
+          const response = await fetch(`/api/vehicles?clientId=${data.clientId}&site=${data.siteTravail}&category=${data.typeVehicule}`);
           const result = await response.json();
           if (result.success) {
             setVehicles(result.vehicles);
           }
         } catch (error) {
           console.error('Error fetching vehicles:', error);
+          setVehicles([]);
         } finally {
           setLoadingVehicles(false);
         }
       };
       fetchVehicles();
+      // Reset véhicule sélectionné
+      setData(prev => ({ ...prev, vehicleId: null, vehicle: '' }));
     } else {
       setVehicles([]);
     }
-  }, [data.clientId]);
-
-  // Charger les tracteurs/porteurs quand le type de véhicule est sélectionné
-  useEffect(() => {
-    if (data.clientId && data.typeVehicule &&
-        (data.typeVehicule === 'Ensemble complet' || data.typeVehicule === 'Tracteur seul' || data.typeVehicule === 'Porteur')) {
-      setLoadingTracteurs(true);
-      const category = data.typeVehicule === 'Porteur' ? 'porteur' : 'tracteur';
-
-      const fetchTracteurs = async () => {
-        try {
-          const response = await fetch(`/api/vehicles?clientId=${data.clientId}&category=${category}`);
-          const result = await response.json();
-          if (result.success) {
-            setTracteurVehicles(result.vehicles);
-          }
-        } catch (error) {
-          console.error('Error fetching tracteurs:', error);
-        } finally {
-          setLoadingTracteurs(false);
-        }
-      };
-      fetchTracteurs();
-    } else {
-      setTracteurVehicles([]);
-    }
-  }, [data.clientId, data.typeVehicule]);
-
-  // Charger les remorques quand le type de véhicule est sélectionné
-  useEffect(() => {
-    if (data.clientId && data.typeVehicule &&
-        (data.typeVehicule === 'Ensemble complet' || data.typeVehicule === 'Remorque seule')) {
-      setLoadingRemorques(true);
-
-      const fetchRemorques = async () => {
-        try {
-          const response = await fetch(`/api/vehicles?clientId=${data.clientId}&category=remorque`);
-          const result = await response.json();
-          if (result.success) {
-            setRemorqueVehicles(result.vehicles);
-          }
-        } catch (error) {
-          console.error('Error fetching remorques:', error);
-        } finally {
-          setLoadingRemorques(false);
-        }
-      };
-      fetchRemorques();
-    } else {
-      setRemorqueVehicles([]);
-    }
-  }, [data.clientId, data.typeVehicule]);
+  }, [data.clientId, data.siteTravail, data.typeVehicule]);
 
   // Étape 1: Prestation lavage
   if (currentStep === 1) {
@@ -190,54 +201,50 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
     );
   }
 
-  // Étape 2: Renseignement clients
+  // Étape 2: Renseignement clients (CASCADE COMPLET)
   if (currentStep === 2) {
     const clientOptions = [...clients.map(c => `${c.name} (${c.code})`), 'Autre'];
-    const vehicleOptions = vehicles.map(v => `${v.license_plate} - ${v.make} ${v.model}`);
 
-    console.log('🔍 LavageSteps - Step 2 Render', {
-      clients,
-      clientOptions,
-      currentValue: data.client,
-      data,
-      vehiclesCount: vehicles.length
-    });
+    // Format spécial pour Intermarché : afficher numéro pour les remorques
+    const isIntermarche = data.clientId === 'bfa6a081-34bf-4b8c-a425-e6b681a40355';
+    const vehicleOptions = [
+      ...vehicles.map(v => {
+        const vehicleType = v.metadata?.vehicle_type || '';
+        const numero = v.metadata?.numero;
+
+        // Pour Intermarché + Remorque avec numéro : afficher "Numéro (Type)"
+        if (isIntermarche && v.vehicle_category === 'remorque' && numero) {
+          return vehicleType ? `${numero} (${vehicleType})` : numero;
+        }
+
+        // Pour tous les autres : afficher "Immatriculation (Type)"
+        return vehicleType ? `${v.license_plate} (${vehicleType})` : v.license_plate;
+      }),
+      'Autre'
+    ];
+
+    const selectedClient = clients.find(c => c.id === data.clientId);
 
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Renseignement clients</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
+          {/* 1. CLIENT */}
           <SearchableCombobox
             label="Client"
             options={clientOptions}
             value={data.client || ''}
             onChange={(value) => {
-              console.log('👤 LavageSteps - Client onChange called', { value });
               const selectedClient = clients.find(c => `${c.name} (${c.code})` === value);
-              console.log('👤 LavageSteps - Selected client:', selectedClient);
-
-              const newData = {
-                ...data,
+              setData(prev => ({
+                ...prev,
                 client: value,
                 clientId: selectedClient?.id || null,
-                clientAutre: '',
-                vehicleId: null,
-                vehicle: ''
-              };
-              console.log('👤 LavageSteps - New data:', newData);
-              setData(newData);
+                clientAutre: value === 'Autre' ? prev.clientAutre : '',
+              }));
             }}
             placeholder={loadingClients ? "Chargement..." : "Sélectionnez un client"}
             required
-            onOtherSelected={(isOther) => {
-              console.log('🔔 LavageSteps - onOtherSelected', { isOther });
-              if (!isOther) {
-                setData(prevData => {
-                  console.log('🔔 Clearing only clientAutre (keeping clientId)', { prevData });
-                  return { ...prevData, clientAutre: '' };
-                });
-              }
-            }}
           />
           {data.client === 'Autre' && (
             <div>
@@ -245,33 +252,33 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
               <input
                 type="text"
                 value={data.clientAutre || ''}
-                onChange={(e) => setData({ ...data, clientAutre: e.target.value })}
+                onChange={(e) => setData(prev => ({ ...prev, clientAutre: e.target.value }))}
                 className="w-full p-3 border rounded-lg"
                 placeholder="Nom du client"
                 required
               />
             </div>
           )}
-          <SearchableCombobox
-            label="Site de travail"
-            options={sites}
-            value={data.siteTravail || ''}
-            onChange={(value) => setData(prevData => ({ ...prevData, siteTravail: value, siteAutre: '' }))}
-            placeholder="Sélectionnez un site"
-            required
-            onOtherSelected={(isOther) => {
-              if (!isOther) {
-                setData(prevData => ({ ...prevData, siteAutre: '' }));
-              }
-            }}
-          />
+
+          {/* 2. SITE (filtré par client) */}
+          {data.clientId && (
+            <SearchableCombobox
+              label="Site de travail"
+              options={sites}
+              value={data.siteTravail || ''}
+              onChange={(value) => setData(prev => ({ ...prev, siteTravail: value, siteAutre: value === 'Autre' ? prev.siteAutre : '' }))}
+              placeholder={loadingSites ? "Chargement..." : sites.length === 1 ? "Aucun site référencé" : "Sélectionnez un site"}
+              required
+              disabled={loadingSites}
+            />
+          )}
           {data.siteTravail === 'Autre' && (
             <div>
               <label className="block text-sm font-medium mb-2">Précisez le site *</label>
               <input
                 type="text"
                 value={data.siteAutre || ''}
-                onChange={(e) => setData({ ...data, siteAutre: e.target.value })}
+                onChange={(e) => setData(prev => ({ ...prev, siteAutre: e.target.value }))}
                 className="w-full p-3 border rounded-lg"
                 placeholder="Nom du site"
                 required
@@ -279,120 +286,91 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
             </div>
           )}
 
-          {/* Type de véhicule EN PREMIER */}
-          <SearchableCombobox
-            label="Type de véhicule"
-            options={typesVehicule}
-            value={data.typeVehicule || ''}
-            onChange={(value) => setData(prevData => ({
-              ...prevData,
-              typeVehicule: value,
-              // Reset les immatriculations quand on change le type
-              vehicleTracteur: '',
-              vehicleRemorque: '',
-              immatTracteur: '',
-              immatRemorque: ''
-            }))}
-            placeholder="Sélectionnez un type"
-            required
-          />
+          {/* 3. CATÉGORIE (filtrée par client + site) */}
+          {data.clientId && data.siteTravail && data.siteTravail !== 'Autre' && (
+            <SearchableCombobox
+              label="Type de véhicule"
+              options={categories}
+              value={data.typeVehicule || ''}
+              onChange={(value) => setData(prev => ({ ...prev, typeVehicule: value }))}
+              placeholder={loadingCategories ? "Chargement..." : categories.length === 1 ? "Aucun type référencé" : "Sélectionnez un type"}
+              required
+              disabled={loadingCategories}
+            />
+          )}
 
-          {/* Sélecteur de Tracteur/Porteur depuis les véhicules du client filtrés par catégorie */}
-          {(data.typeVehicule === 'Ensemble complet' || data.typeVehicule === 'Tracteur seul' || data.typeVehicule === 'Porteur') && data.clientId && (
+          {/* 4. VÉHICULE (filtré par client + site + catégorie) + OPTION "AUTRE" */}
+          {data.clientId && data.siteTravail && data.siteTravail !== 'Autre' && data.typeVehicule && data.typeVehicule !== 'Autre' && (
             <div>
               <SearchableCombobox
-                label={data.typeVehicule === 'Porteur' ? 'Véhicule Porteur *' : 'Véhicule Tracteur *'}
-                options={[...tracteurVehicles.map(v => `${v.license_plate} - ${v.make} ${v.model}`), 'Saisie manuelle']}
-                value={data.vehicleTracteur || ''}
+                label="Immatriculation"
+                options={vehicleOptions}
+                value={data.vehicle || ''}
                 onChange={(value) => {
-                  const selectedVehicle = tracteurVehicles.find(v => `${v.license_plate} - ${v.make} ${v.model}` === value);
-                  setData(prevData => ({
-                    ...prevData,
-                    vehicleTracteur: value,
-                    immatTracteur: value === 'Saisie manuelle' ? '' : (selectedVehicle?.license_plate || '')
-                  }));
+                  if (value === 'Autre') {
+                    setShowAddVehicleDialog(true);
+                  } else {
+                    const selectedVehicle = vehicles.find(v => {
+                      const vehicleType = v.metadata?.vehicle_type || '';
+                      const displayValue = vehicleType ? `${v.license_plate} (${vehicleType})` : v.license_plate;
+                      return displayValue === value;
+                    });
+                    setData(prev => ({
+                      ...prev,
+                      vehicle: value,
+                      vehicleId: selectedVehicle?.id || null
+                    }));
+                  }
                 }}
-                placeholder={loadingTracteurs ? "Chargement..." : "Sélectionnez le véhicule"}
-                required={true}
+                placeholder={loadingVehicles ? "Chargement..." : vehicles.length === 0 ? "Aucun véhicule" : "Sélectionnez un véhicule"}
+                required
+                disabled={loadingVehicles}
               />
-
-              {/* Message si aucun véhicule de cette catégorie */}
-              {tracteurVehicles.length === 0 && !loadingTracteurs && (
+              {vehicles.length === 0 && !loadingVehicles && (
                 <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
-                  ⚠️ Aucun {data.typeVehicule === 'Porteur' ? 'porteur' : 'tracteur'} trouvé pour ce client. Utilisez "Saisie manuelle".
+                  ⚠️ Aucun véhicule trouvé. Sélectionnez "Autre" pour en ajouter un.
                 </p>
               )}
-
-              {/* Champ manuel si "Saisie manuelle" est sélectionné */}
-              {data.vehicleTracteur === 'Saisie manuelle' && (
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    value={data.immatTracteur || ''}
-                    onChange={(e) => setData(prevData => ({ ...prevData, immatTracteur: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                    placeholder="AA-123-BB"
-                    required
-                  />
-                </div>
-              )}
             </div>
           )}
 
-          {/* Sélecteur de Remorque depuis les véhicules du client filtrés par catégorie */}
-          {(data.typeVehicule === 'Ensemble complet' || data.typeVehicule === 'Remorque seule') && (
-            <div>
-              {data.clientId ? (
-                <>
-                  <SearchableCombobox
-                    label="Véhicule Remorque *"
-                    options={[...remorqueVehicles.map(v => `${v.license_plate} - ${v.make} ${v.model}`), 'Saisie manuelle']}
-                    value={data.vehicleRemorque || ''}
-                    onChange={(value) => {
-                      const selectedVehicle = remorqueVehicles.find(v => `${v.license_plate} - ${v.make} ${v.model}` === value);
-                      setData(prevData => ({
-                        ...prevData,
-                        vehicleRemorque: value,
-                        immatRemorque: value === 'Saisie manuelle' ? '' : (selectedVehicle?.license_plate || '')
-                      }));
-                    }}
-                    placeholder={loadingRemorques ? "Chargement..." : "Sélectionnez le véhicule"}
-                    required={true}
-                  />
-
-                  {/* Message si aucune remorque trouvée */}
-                  {remorqueVehicles.length === 0 && !loadingRemorques && (
-                    <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
-                      ⚠️ Aucune remorque trouvée pour ce client. Utilisez "Saisie manuelle".
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-300">⚠️ Veuillez d'abord sélectionner un client</p>
-                </div>
-              )}
-
-              {/* Champ manuel si "Saisie manuelle" est sélectionné */}
-              {data.vehicleRemorque === 'Saisie manuelle' && (
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    value={data.immatRemorque || ''}
-                    onChange={(e) => setData(prevData => ({ ...prevData, immatRemorque: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                    placeholder="AA-123-BB"
-                    required
-                  />
-                </div>
-              )}
-            </div>
-          )}
           <div className="flex gap-4">
             <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
-            <button type="submit" className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark">Suivant →</button>
+            <button type="submit" className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg hover:bg-primary/90">Suivant →</button>
           </div>
         </form>
+
+        {/* Modal pour ajouter un véhicule */}
+        {selectedClient && data.siteTravail && data.siteTravail !== 'Autre' && data.typeVehicule && data.typeVehicule !== 'Autre' && (
+          <AddVehicleDialog
+            open={showAddVehicleDialog}
+            onOpenChange={setShowAddVehicleDialog}
+            prefilledClientId={data.clientId}
+            prefilledClientName={selectedClient.name}
+            prefilledSite={data.siteTravail}
+            prefilledCategory={data.typeVehicule}
+            onVehicleCreated={(newVehicle) => {
+              setVehicles(prev => [...prev, newVehicle]);
+              const vehicleType = newVehicle.metadata?.vehicle_type || '';
+              const displayValue = vehicleType ? `${newVehicle.license_plate} (${vehicleType})` : newVehicle.license_plate;
+              setData(prev => ({
+                ...prev,
+                vehicle: displayValue,
+                vehicleId: newVehicle.id
+              }));
+            }}
+            onVehicleLink={(linkedVehicle) => {
+              setVehicles(prev => [...prev, linkedVehicle]);
+              const vehicleType = linkedVehicle.metadata?.vehicle_type || '';
+              const displayValue = vehicleType ? `${linkedVehicle.license_plate} (${vehicleType})` : linkedVehicle.license_plate;
+              setData(prev => ({
+                ...prev,
+                vehicle: displayValue,
+                vehicleId: linkedVehicle.id
+              }));
+            }}
+          />
+        )}
       </div>
     );
   }
