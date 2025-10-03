@@ -54,8 +54,8 @@ export default function InterventionHistoryPage() {
         return res.json();
       })
       .then(data => {
-        console.log('✅ Interventions loaded:', data.length);
-        setInterventions(data)
+        console.log('✅ Interventions loaded:', data.interventions?.length || 0);
+        setInterventions(data.interventions || [])
         setLoading(false)
       })
       .catch(err => {
