@@ -11,6 +11,7 @@ import CarburantLivraisonSteps from '@/components/interventions/CarburantLivrais
 import CarburantCuveSteps from '@/components/interventions/CarburantCuveSteps';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { requestGeolocation, type GeolocationData } from '@/hooks/useGeolocation';
+import { errorLogger } from '@/lib/errorLogger';
 
 export default function NouvelleInterventionPage() {
   const router = useRouter();
@@ -124,6 +125,13 @@ export default function NouvelleInterventionPage() {
     });
 
     try {
+      errorLogger.log('api_error', 'Starting intervention submission', {
+        type: completeData.type,
+        hasPhotosAvant: !!completeData.photosAvant,
+        hasPhotosApres: !!completeData.photosApres,
+        hasGPS: !!(gpsData?.latitude && gpsData?.longitude)
+      });
+
       const formDataToSend = new FormData();
       Object.keys(completeData).forEach(key => {
         const value = completeData[key];
@@ -209,22 +217,63 @@ export default function NouvelleInterventionPage() {
         }
       });
 
+      // Get token for Authorization header (more reliable than cookies on mobile)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('sb-access-token') : null;
+
+      errorLogger.log('api_error', 'Sending request', {
+        hasToken: !!token,
+        formDataKeys: Array.from(formDataToSend.keys()),
+        url: '/api/interventions'
+      });
+
       const response = await fetch('/api/interventions', {
         method: 'POST',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {},
         body: formDataToSend,
+      });
+
+      const responseText = await response.text();
+      let responseData;
+
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        responseData = { rawText: responseText };
+      }
+
+      errorLogger.log('api_error', `Response received: ${response.status}`, {
+        status: response.status,
+        ok: response.ok,
+        response: responseData
       });
 
       if (response.ok) {
         alert('✅ Intervention enregistrée avec succès !');
         router.push('/interventions');
       } else {
-        alert('❌ Erreur lors de l\'enregistrement');
-        setIsSubmitting(false); // Réactiver en cas d'erreur
+        const errorMessage = responseData?.error || `Erreur ${response.status}`;
+
+        errorLogger.log('api_error', 'Submission failed', {
+          status: response.status,
+          error: responseData,
+          fullResponse: responseText
+        });
+
+        alert(`❌ ${errorMessage}`);
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error('Erreur:', error);
-      alert('❌ Erreur lors de l\'enregistrement');
-      setIsSubmitting(false); // Réactiver en cas d'erreur
+
+      errorLogger.log('network_error', 'Request failed completely', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
+      alert('❌ Erreur de connexion. Vérifiez votre connexion internet.');
+      setIsSubmitting(false);
     }
   };
 
