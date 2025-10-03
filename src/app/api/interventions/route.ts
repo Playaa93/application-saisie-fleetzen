@@ -5,50 +5,42 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-export async function GET(request: NextRequest) {
-  console.log('=== START GET /api/interventions ===');
-
+export async function GET() {
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Ultra-simple query WITHOUT table joins to isolate the issue
-    console.log('Querying interventions (basic fields only)...');
-    const { data, error } = await supabase
+    const { data: interventions, error } = await supabase
       .from('interventions')
       .select('id, created_at, status, notes, intervention_type_id, client_id, vehicle_id')
       .order('created_at', { ascending: false })
       .limit(100);
 
     if (error) {
-      console.error('❌ Supabase query error:', error);
-      throw error;
+      console.error('Error fetching interventions:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch interventions' },
+        { status: 500 }
+      );
     }
 
-    console.log(`✅ Found ${data?.length || 0} interventions`);
-
-    // Return raw data without mapping for now
-    const interventions = (data || []).map(intervention => ({
+    // Simple mapping
+    const formatted = (interventions || []).map(intervention => ({
       id: intervention.id,
-      type: `Type ${intervention.intervention_type_id}`,  // Placeholder
-      client: `Client ${intervention.client_id}`,  // Placeholder
+      type: `Type ${intervention.intervention_type_id}`,
+      client: `Client ${intervention.client_id}`,
       vehicule: intervention.vehicle_id ? `Vehicle ${intervention.vehicle_id}` : 'N/A',
       status: intervention.status,
       creeLe: intervention.created_at,
     }));
 
-    console.log('=== GET SUCCESS ===');
-    return NextResponse.json(interventions);
+    return NextResponse.json(formatted);
 
   } catch (error) {
-    console.error('=== ERROR in GET ===', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: errorMessage,
-      stack: errorStack?.split('\n').slice(0, 3).join('\n')
-    }, { status: 500 });
+    console.error('Error in GET /api/interventions:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
