@@ -1,17 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
-export async function GET() {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase
+    // Get agent_id from query params (optional filter)
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agent_id');
+    const myInterventions = searchParams.get('my') === 'true';
+
+    // Get authenticated user if filtering by "my interventions"
+    let currentUserId: string | null = null;
+    if (myInterventions) {
+      const token = request.cookies.get('sb-access-token')?.value ||
+                    request.headers.get('authorization')?.replace('Bearer ', '');
+
+      if (token) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        currentUserId = user?.id || null;
+      }
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Build query with optional agent filter
+    let query = supabase
       .from('interventions')
       .select(`
         *,
         intervention_types (name),
         clients (name),
-        vehicles (license_plate, make, model)
+        vehicles (license_plate, make, model),
+        agents (first_name, last_name)
       `)
       .order('created_at', { ascending: false });
+
+    // Apply agent filter if specified
+    if (agentId) {
+      query = query.eq('agent_id', agentId);
+    } else if (myInterventions && currentUserId) {
+      query = query.eq('agent_id', currentUserId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -22,8 +56,12 @@ export async function GET() {
       client: intervention.clients?.name || '',
       vehicule: intervention.vehicles?.license_plate ?
         `${intervention.vehicles.license_plate} - ${intervention.vehicles.make} ${intervention.vehicles.model}` : '',
+      agent: intervention.agents ?
+        `${intervention.agents.first_name} ${intervention.agents.last_name}` : 'Non assigné',
+      agentId: intervention.agent_id,
       kilometres: null, // Pas de champ kilomètres dans la table
       notes: intervention.notes,
+      status: intervention.status,
       creeLe: intervention.created_at,
       photos: [] // Pas encore implémenté
     }));
