@@ -37,19 +37,11 @@ export async function GET(request: NextRequest) {
     console.log('Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Simple query without complex filtering
-    console.log('Querying interventions...');
+    // Ultra-simple query WITHOUT table joins to isolate the issue
+    console.log('Querying interventions (basic fields only)...');
     const { data, error } = await supabase
       .from('interventions')
-      .select(`
-        id,
-        created_at,
-        status,
-        notes,
-        intervention_types (name),
-        clients (name),
-        vehicles (license_plate, make, model)
-      `)
+      .select('id, created_at, status, notes, intervention_type_id, client_id, vehicle_id')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -60,12 +52,12 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${data?.length || 0} interventions`);
 
-    // Simple mapping
+    // Return raw data without mapping for now
     const interventions = (data || []).map(intervention => ({
       id: intervention.id,
-      type: intervention.intervention_types?.name || '',
-      client: intervention.clients?.name || '',
-      vehicule: intervention.vehicles?.license_plate || '',
+      type: `Type ${intervention.intervention_type_id}`,  // Placeholder
+      client: `Client ${intervention.client_id}`,  // Placeholder
+      vehicule: intervention.vehicle_id ? `Vehicle ${intervention.vehicle_id}` : 'N/A',
       status: intervention.status,
       creeLe: intervention.created_at,
     }));
