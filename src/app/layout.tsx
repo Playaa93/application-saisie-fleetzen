@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
 import { ConnectionStatus } from "@/components/ConnectionStatus"
@@ -52,6 +53,13 @@ export default function RootLayout({
           <ConnectionStatus />
           {children}
         </ThemeProvider>
+        {/* PWA Service Worker Registration - Production only */}
+        {process.env.NODE_ENV === 'production' && (
+          <Script
+            src="/register-sw.js"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   )

@@ -24,7 +24,7 @@
     "preview": "npm run build && wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy",
     "build:next": "next build",
-    "postbuild": "node sync-dist.js"
+    "postbuild": "node ci/sync-dist.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

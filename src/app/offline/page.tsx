@@ -1,14 +1,27 @@
 'use client';
 
-export const dynamic = 'force-dynamic'
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-primary/10 to-background flex flex-col items-center justify-center p-4">
+      <div className="bg-card rounded-2xl border border-border shadow-2xl p-8 max-w-md w-full text-center">
+        {/* Logo FleetZen */}
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/logo-fleetzen.svg"
+            alt="FleetZen Logo"
+            width={120}
+            height={120}
+            priority
+          />
+        </div>
+
+        {/* Icône Offline */}
+        <div className="mb-6">
           <svg
-            className="mx-auto h-24 w-24 text-muted-foreground"
+            className="w-20 h-20 mx-auto text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -22,42 +35,57 @@ export default function OfflinePage() {
           </svg>
         </div>
 
-        <h1 className="text-3xl font-bold text-foreground mb-4">
-          You're Offline
+        <h1 className="text-2xl font-semibold text-foreground mb-4">
+          Vous êtes hors ligne
         </h1>
 
-        <p className="text-lg text-muted-foreground mb-8">
-          This page is not available offline. Please check your internet connection and try again.
+        <p className="text-muted-foreground mb-6">
+          FleetZen nécessite une connexion Internet pour fonctionner. Veuillez vérifier votre connexion et réessayer.
         </p>
 
-        <button
-          onClick={() => window.location.reload()}
-          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-        >
-          <svg
-            className="mr-2 h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          Retry
-        </button>
-
-        <div className="mt-8 text-sm text-muted-foreground">
-          <p>Some features may still be available offline.</p>
-          <p className="mt-2">
-            <a href="/" className="text-primary hover:text-primary/80">
-              Return to home page
-            </a>
+        {/* Statut de connexion */}
+        <div className="bg-muted rounded-lg p-4 mb-6">
+          <p className="text-sm text-muted-foreground">
+            <span className="inline-block w-3 h-3 rounded-full bg-destructive mr-2"></span>
+            Pas de connexion Internet
           </p>
         </div>
+
+        {/* Boutons d'action */}
+        <div className="space-y-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition"
+          >
+            Réessayer
+          </button>
+
+          <Link
+            href="/"
+            className="block w-full bg-secondary text-secondary-foreground py-3 rounded-lg font-medium hover:bg-secondary/80 transition"
+          >
+            Retour à l'accueil
+          </Link>
+        </div>
+
+        {/* Conseils */}
+        <div className="mt-8 text-left">
+          <p className="text-sm font-medium text-foreground mb-2">
+            Conseils de dépannage :
+          </p>
+          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+            <li>Vérifiez votre connexion Wi-Fi ou données mobiles</li>
+            <li>Désactivez puis réactivez le mode avion</li>
+            <li>Redémarrez votre appareil si nécessaire</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Informations techniques */}
+      <div className="mt-6 text-center">
+        <p className="text-xs text-muted-foreground">
+          FleetZen PWA • Version {process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+        </p>
       </div>
     </div>
   );

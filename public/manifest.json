@@ -1,11 +1,11 @@
 {
-  "name": "Agents Terrain - Field Agents App",
-  "short_name": "Field Agents",
-  "description": "Mobile-first field agent application for on-site operations and data collection",
+  "name": "FleetZen - Suivi des interventions",
+  "short_name": "FleetZen",
+  "description": "Application mobile pour le suivi et la gestion des interventions terrain",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#FAF9F6",
+  "theme_color": "#14B8A6",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -75,6 +75,6 @@
   "prefer_related_applications": false,
   "related_applications": [],
   "scope": "/",
-  "lang": "en-US",
+  "lang": "fr-FR",
   "dir": "ltr"
 }
