@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDateShort } from '@/lib/utils';
 import { reverseGeocode, getGoogleMapsUrl, getWazeUrl } from '@/lib/geocoding';
+import { InterventionMap } from '@/components/InterventionMap';
 
 interface Intervention {
   id: string;
@@ -223,6 +224,15 @@ export default function InterventionDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Carte interactive */}
+              <InterventionMap
+                latitude={parseFloat(intervention.coordinates.latitude || intervention.metadata?.latitude)}
+                longitude={parseFloat(intervention.coordinates.longitude || intervention.metadata?.longitude)}
+                address={address || undefined}
+                accuracy={intervention.locationAccuracy || undefined}
+                className="h-64 w-full rounded-lg mb-3"
+              />
+
               {/* Adresse géocodée */}
               {geocoding ? (
                 <p className="text-sm text-muted-foreground">Chargement de l'adresse...</p>
