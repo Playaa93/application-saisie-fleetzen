@@ -4,16 +4,31 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Exact copy of /api/clients pattern but for interventions table
 export async function GET() {
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: interventions, error } = await supabase
+    const { data, error } = await supabase
       .from('interventions')
-      .select('id, created_at, status')
+      .select(`
+        id,
+        created_at,
+        status,
+        intervention_types (
+          name,
+          code
+        ),
+        clients (
+          name
+        ),
+        vehicles (
+          license_plate,
+          make,
+          model
+        )
+      `)
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (error) {
       console.error('Error fetching interventions:', error);
@@ -23,13 +38,25 @@ export async function GET() {
       );
     }
 
+    // Formater les données pour correspondre à l'interface frontend
+    const interventions = (data || []).map(intervention => ({
+      id: intervention.id,
+      type: intervention.intervention_types?.name || 'Type inconnu',
+      client: intervention.clients?.name || 'Client inconnu',
+      vehicule: intervention.vehicles
+        ? `${intervention.vehicles.license_plate} - ${intervention.vehicles.make} ${intervention.vehicles.model}`
+        : 'Aucun véhicule',
+      creeLe: intervention.created_at,
+      status: intervention.status
+    }));
+
     return NextResponse.json({
       success: true,
-      interventions: interventions || [],
-      count: interventions?.length || 0,
+      interventions,
+      count: interventions.length,
     });
   } catch (error) {
-    console.error('Error in GET /api/interventions/simple:', error);
+    console.error('Error in GET /api/interventions:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
