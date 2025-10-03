@@ -74,13 +74,14 @@ export default function InterventionDetailPage() {
 
   // Géocoder l'adresse quand l'intervention est chargée
   useEffect(() => {
-    if (!intervention?.coordinates) return;
+    if (!intervention) return;
 
     const fetchAddress = async () => {
       setGeocoding(true);
       try {
-        const lat = intervention.coordinates.latitude || intervention.metadata?.latitude;
-        const lng = intervention.coordinates.longitude || intervention.metadata?.longitude;
+        // Chercher coordonnées dans coordinates ou metadata
+        const lat = intervention.coordinates?.latitude || intervention.metadata?.latitude;
+        const lng = intervention.coordinates?.longitude || intervention.metadata?.longitude;
 
         if (lat && lng) {
           const addr = await reverseGeocode(parseFloat(lat), parseFloat(lng));
@@ -215,89 +216,91 @@ export default function InterventionDetailPage() {
         )}
 
         {/* Localisation */}
-        {intervention.coordinates && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Localisation
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Carte interactive */}
-              <InterventionMap
-                latitude={parseFloat(intervention.coordinates.latitude || intervention.metadata?.latitude)}
-                longitude={parseFloat(intervention.coordinates.longitude || intervention.metadata?.longitude)}
-                address={address || undefined}
-                accuracy={intervention.locationAccuracy || undefined}
-                className="h-64 w-full rounded-lg mb-3"
-              />
+        {((intervention.coordinates?.latitude && intervention.coordinates?.longitude) ||
+          (intervention.metadata?.latitude && intervention.metadata?.longitude)) && (() => {
+          // Extraire coordonnées GPS
+          const lat = parseFloat(intervention.coordinates?.latitude || intervention.metadata?.latitude);
+          const lng = parseFloat(intervention.coordinates?.longitude || intervention.metadata?.longitude);
+          const accuracy = parseFloat(intervention.locationAccuracy || intervention.metadata?.gpsAccuracy || 0);
 
-              {/* Adresse géocodée */}
-              {geocoding ? (
-                <p className="text-sm text-muted-foreground">Chargement de l'adresse...</p>
-              ) : address ? (
-                <p className="text-sm font-medium">{address}</p>
-              ) : (
-                <p className="text-sm">
-                  {intervention.coordinates.latitude?.toFixed(6)}, {intervention.coordinates.longitude?.toFixed(6)}
-                </p>
-              )}
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Localisation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Carte interactive */}
+                <InterventionMap
+                  latitude={lat}
+                  longitude={lng}
+                  address={address || undefined}
+                  accuracy={accuracy || undefined}
+                  className="h-64 w-full rounded-lg mb-3"
+                />
 
-              {/* Précision GPS */}
-              {intervention.locationAccuracy && (
-                <p className="text-xs text-muted-foreground">
-                  Précision: ±{intervention.locationAccuracy}m
-                </p>
-              )}
+                {/* Adresse géocodée */}
+                {geocoding ? (
+                  <p className="text-sm text-muted-foreground">Chargement de l'adresse...</p>
+                ) : address ? (
+                  <p className="text-sm font-medium">{address}</p>
+                ) : (
+                  <p className="text-sm">
+                    {lat.toFixed(6)}, {lng.toFixed(6)}
+                  </p>
+                )}
 
-              {/* Boutons de navigation */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  asChild
-                >
-                  <a
-                    href={getGoogleMapsUrl(
-                      parseFloat(intervention.coordinates.latitude || intervention.metadata?.latitude),
-                      parseFloat(intervention.coordinates.longitude || intervention.metadata?.longitude)
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {/* Précision GPS */}
+                {accuracy > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Précision: ±{accuracy.toFixed(1)}m
+                  </p>
+                )}
+
+                {/* Boutons de navigation */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    asChild
                   >
-                    <Navigation className="w-4 h-4 mr-2" />
-                    Google Maps
-                  </a>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  asChild
-                >
-                  <a
-                    href={getWazeUrl(
-                      parseFloat(intervention.coordinates.latitude || intervention.metadata?.latitude),
-                      parseFloat(intervention.coordinates.longitude || intervention.metadata?.longitude)
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    <a
+                      href={getGoogleMapsUrl(lat, lng)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Google Maps
+                    </a>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    asChild
                   >
-                    <Navigation className="w-4 h-4 mr-2" />
-                    Waze
-                  </a>
-                </Button>
-              </div>
+                    <a
+                      href={getWazeUrl(lat, lng)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Waze
+                    </a>
+                  </Button>
+                </div>
 
-              {/* Coordonnées brutes en petit */}
-              <p className="text-xs text-muted-foreground pt-2">
-                Coordonnées: {intervention.coordinates.latitude?.toFixed(6)}, {intervention.coordinates.longitude?.toFixed(6)}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+                {/* Coordonnées brutes en petit */}
+                <p className="text-xs text-muted-foreground pt-2">
+                  Coordonnées: {lat.toFixed(6)}, {lng.toFixed(6)}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Métadonnées (données du formulaire) */}
         {intervention.metadata && Object.keys(intervention.metadata).length > 0 && (
