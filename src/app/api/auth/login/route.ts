@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   console.log('=== START POST /api/auth/login ===');
 
   try {
-    if (\!supabaseUrl || \!supabaseKey) {
+    if (!supabaseUrl || !supabaseKey) {
       console.error('❌ Missing environment variables');
       return NextResponse.json({
         error: 'Configuration error: Missing Supabase credentials'
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password } = body;
 
-    if (\!email || \!password) {
+    if (!email || !password) {
       return NextResponse.json({
         error: 'Email et mot de passe requis'
       }, { status: 400 });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
-    if (\!data.session) {
+    if (!data.session) {
       return NextResponse.json({
         error: 'Aucune session créée'
       }, { status: 401 });
