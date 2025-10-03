@@ -4,11 +4,13 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Calendar, User, Truck, FileText, Image as ImageIcon, MapPin, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Truck, FileText, Image as ImageIcon, MapPin, CheckCircle2, Navigation } from 'lucide-react';
 import { MobileHeader } from '@/components/mobile/MobileHeader';
 import { AppShell } from '@/components/mobile/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatDateShort } from '@/lib/utils';
+import { reverseGeocode, getGoogleMapsUrl, getWazeUrl } from '@/lib/geocoding';
 
 interface Intervention {
   id: string;
@@ -46,6 +48,8 @@ export default function InterventionDetailPage() {
   const params = useParams();
   const [intervention, setIntervention] = useState<Intervention | null>(null);
   const [loading, setLoading] = useState(true);
+  const [address, setAddress] = useState<string | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
 
   useEffect(() => {
     if (!params.id) return;
@@ -66,6 +70,30 @@ export default function InterventionDetailPage() {
         setLoading(false);
       });
   }, [params.id]);
+
+  // Géocoder l'adresse quand l'intervention est chargée
+  useEffect(() => {
+    if (!intervention?.coordinates) return;
+
+    const fetchAddress = async () => {
+      setGeocoding(true);
+      try {
+        const lat = intervention.coordinates.latitude || intervention.metadata?.latitude;
+        const lng = intervention.coordinates.longitude || intervention.metadata?.longitude;
+
+        if (lat && lng) {
+          const addr = await reverseGeocode(parseFloat(lat), parseFloat(lng));
+          setAddress(addr);
+        }
+      } catch (error) {
+        console.error('Erreur géocodage:', error);
+      } finally {
+        setGeocoding(false);
+      }
+    };
+
+    fetchAddress();
+  }, [intervention]);
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { label: string; className: string }> = {
@@ -194,16 +222,69 @@ export default function InterventionDetailPage() {
                 Localisation
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm">
-                Lat: {intervention.coordinates.latitude?.toFixed(6)},
-                Lng: {intervention.coordinates.longitude?.toFixed(6)}
-              </p>
+            <CardContent className="space-y-3">
+              {/* Adresse géocodée */}
+              {geocoding ? (
+                <p className="text-sm text-muted-foreground">Chargement de l'adresse...</p>
+              ) : address ? (
+                <p className="text-sm font-medium">{address}</p>
+              ) : (
+                <p className="text-sm">
+                  {intervention.coordinates.latitude?.toFixed(6)}, {intervention.coordinates.longitude?.toFixed(6)}
+                </p>
+              )}
+
+              {/* Précision GPS */}
               {intervention.locationAccuracy && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Précision: ±{intervention.locationAccuracy}m
                 </p>
               )}
+
+              {/* Boutons de navigation */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  asChild
+                >
+                  <a
+                    href={getGoogleMapsUrl(
+                      parseFloat(intervention.coordinates.latitude || intervention.metadata?.latitude),
+                      parseFloat(intervention.coordinates.longitude || intervention.metadata?.longitude)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Navigation className="w-4 h-4 mr-2" />
+                    Google Maps
+                  </a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  asChild
+                >
+                  <a
+                    href={getWazeUrl(
+                      parseFloat(intervention.coordinates.latitude || intervention.metadata?.latitude),
+                      parseFloat(intervention.coordinates.longitude || intervention.metadata?.longitude)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Navigation className="w-4 h-4 mr-2" />
+                    Waze
+                  </a>
+                </Button>
+              </div>
+
+              {/* Coordonnées brutes en petit */}
+              <p className="text-xs text-muted-foreground pt-2">
+                Coordonnées: {intervention.coordinates.latitude?.toFixed(6)}, {intervention.coordinates.longitude?.toFixed(6)}
+              </p>
             </CardContent>
           </Card>
         )}

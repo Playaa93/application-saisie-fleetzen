@@ -28,14 +28,9 @@ export default function NouvelleInterventionPage() {
       try {
         const location = await requestGeolocation(true, 10000);
         setGpsData(location);
-        console.log('📍 GPS captured:', location);
-        errorLogger.log('api_error', 'GPS captured successfully', {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy
-        });
+        console.log('📍 GPS capturé:', location);
       } catch (error) {
-        console.error('❌ GPS error:', error);
+        console.error('❌ Erreur GPS:', error);
         const errorMessage = error instanceof Error ? error.message : 'Erreur GPS';
         setGpsError(errorMessage);
         errorLogger.log('validation_error', 'GPS capture failed', {
