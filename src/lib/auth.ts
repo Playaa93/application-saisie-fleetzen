@@ -1,63 +1,55 @@
-/**
- * Authentication utilities
- * Password hashing, JWT generation/verification
- */
-
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-in-production';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '30d';
+// JWT secret - IMPORTANT: use strong secret in production
+const JWT_SECRET = process.env.JWT_SECRET || 'fleetzen-super-secret-key-change-in-production-2025';
+const JWT_EXPIRES_IN = '7d'; // 7 days
 
-// ============================================================================
-// PASSWORD HASHING
-// ============================================================================
+export interface AgentPayload {
+  id: string;
+  email: string;
+  role: 'admin' | 'supervisor' | 'field_agent';
+  firstName: string;
+  lastName: string;
+}
 
 /**
- * Hash a plain text password
+ * Hash password with bcrypt
  */
 export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return await bcrypt.hash(password, saltRounds);
+  return bcrypt.hash(password, 12);
 }
 
 /**
- * Verify a password against a hash
+ * Verify password against hash
  */
-export async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
-}
-
-// ============================================================================
-// JWT TOKENS
-// ============================================================================
-
-interface JWTPayload {
-  agentId: string;
-  email: string;
-  role: string;
-  firstName?: string;
-  lastName?: string;
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 /**
- * Generate a JWT token for an agent
+ * Generate JWT token for agent
  */
-export function generateJWT(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRY,
-  });
+export function generateToken(agent: AgentPayload): string {
+  return jwt.sign(
+    {
+      id: agent.id,
+      email: agent.email,
+      role: agent.role,
+      firstName: agent.firstName,
+      lastName: agent.lastName,
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
 }
 
 /**
- * Verify and decode a JWT token
+ * Verify and decode JWT token
  */
-export function verifyJWT(token: string): JWTPayload | null {
+export function verifyToken(token: string): AgentPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as AgentPayload;
     return decoded;
   } catch (error) {
     console.error('JWT verification failed:', error);
@@ -66,22 +58,27 @@ export function verifyJWT(token: string): JWTPayload | null {
 }
 
 /**
- * Extract JWT from Authorization header
+ * Extract token from Authorization header
  */
 export function extractTokenFromHeader(authHeader: string | null): string | null {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader) return null;
+
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
     return null;
   }
-  return authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  return parts[1];
 }
 
 /**
- * Middleware helper to verify authenticated requests
+ * Get agent from request headers
  */
-export function verifyAuthToken(authHeader: string | null): JWTPayload | null {
+export function getAgentFromHeaders(headers: Headers): AgentPayload | null {
+  const authHeader = headers.get('authorization');
   const token = extractTokenFromHeader(authHeader);
-  if (!token) {
-    return null;
-  }
-  return verifyJWT(token);
+
+  if (!token) return null;
+
+  return verifyToken(token);
 }

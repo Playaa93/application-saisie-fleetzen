@@ -1,124 +1,97 @@
 /**
  * POST /api/auth/login
- * Agent Authentication Endpoint
+ * Agent Authentication with Supabase Auth
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { db } from '@/db';
-import { agents } from '@/db/schema';
-import { agentSessions } from '@/db/intervention-schema';
-import { eq } from 'drizzle-orm';
-import { verifyPassword } from '@/utils/auth';
-import { generateAuthToken } from '@/middleware/auth';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  deviceId: z.string().optional(),
-  deviceName: z.string().optional(),
-  deviceType: z.enum(['mobile', 'tablet', 'desktop']).optional(),
+  email: z.string().email('Email invalide'),
+  password: z.string().min(1, 'Mot de passe requis'),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse and validate request body
     const body = await request.json();
     const validatedData = loginSchema.parse(body);
 
-    // Find agent by email
-    const [user] = await db
-      .select({
-        id: agents.id,
-        email: agents.email,
-        passwordHash: agents.passwordHash,
-        fullName: agents.firstName,
-        role: agents.role,
-        organizationId: agents.id, // No organization in agents table
-        isActive: agents.isActive,
-      })
-      .from(agents)
-      .where(eq(agents.email, validatedData.email.toLowerCase()))
-      .limit(1);
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
-    if (!agent) {
+    // Authenticate with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: validatedData.email.toLowerCase(),
+      password: validatedData.password,
+    });
+
+    if (authError || !authData.user) {
+      console.error('Auth error:', authError?.message);
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        {
+          success: false,
+          error: 'Email ou mot de passe incorrect'
+        },
         { status: 401 }
       );
     }
 
-    // Check if user is active
-    if (!user.isActive) {
+    // Get agent metadata from agents table
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, email, first_name, last_name, phone, role, is_active')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (agentError || !agent) {
+      console.error('Agent fetch error:', agentError?.message);
       return NextResponse.json(
-        { error: 'Account is inactive. Please contact administrator.' },
+        {
+          success: false,
+          error: 'Profil agent non trouvé'
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check if agent is active
+    if (!agent.is_active) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Compte désactivé. Contactez l\'administrateur.'
+        },
         { status: 403 }
       );
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(
-      validatedData.password,
-      user.passwordHash
-    );
-
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
-
-    // Create session
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
-
-    const [session] = await db
-      .insert(agentSessions)
-      .values({
-        agentId: user.id,
-        token: '', // Will be updated after token generation
-        deviceId: validatedData.deviceId,
-        deviceName: validatedData.deviceName,
-        deviceType: validatedData.deviceType,
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-        userAgent: request.headers.get('user-agent') || 'unknown',
-        isActive: true,
-        expiresAt,
-        lastActivityAt: new Date(),
-      })
-      .returning();
-
-    // Generate JWT token
-    const token = await generateAuthToken(user.id, session.id);
-
-    // Update session with token
-    await db
-      .update(agentSessions)
-      .set({ token })
-      .where(eq(agentSessions.id, session.id));
-
-    // Update last login timestamp
-    await db
-      .update(agents)
-      .set({ lastLoginAt: new Date() })
-      .where(eq(agents.id, user.id));
-
-    // Return success response
+    // Return success with session and agent data
     return NextResponse.json({
       success: true,
       data: {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-          organizationId: user.organizationId,
-        },
         session: {
-          id: session.id,
-          expiresAt: session.expiresAt,
+          access_token: authData.session?.access_token,
+          refresh_token: authData.session?.refresh_token,
+          expires_at: authData.session?.expires_at,
+          expires_in: authData.session?.expires_in,
+        },
+        user: {
+          id: agent.id,
+          email: agent.email,
+          firstName: agent.first_name,
+          lastName: agent.last_name,
+          fullName: `${agent.first_name} ${agent.last_name}`,
+          phone: agent.phone,
+          role: agent.role,
         },
       },
     });
@@ -127,13 +100,20 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        {
+          success: false,
+          error: 'Données invalides',
+          details: error.errors
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        success: false,
+        error: 'Erreur serveur'
+      },
       { status: 500 }
     );
   }
