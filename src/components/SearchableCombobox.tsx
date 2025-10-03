@@ -23,7 +23,9 @@ export default function SearchableCombobox({
 }: SearchableComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   console.log('🔄 SearchableCombobox render', {
     label,
@@ -35,6 +37,20 @@ export default function SearchableCombobox({
   const filteredOptions = options.filter(option =>
     option.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Calculate dropdown position when opening
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 300; // max-h-60 (240px) + padding
+
+      // Open upward if not enough space below and more space above
+      setOpenUpward(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+    }
+    setIsOpen(!isOpen);
+  };
 
   const handleSelect = (option: string) => {
     console.log('🎯 SearchableCombobox handleSelect', {
@@ -74,15 +90,18 @@ export default function SearchableCombobox({
 
       <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleToggle}
           className="w-full p-3 border rounded-lg text-left flex items-center justify-between bg-white hover:border-fleetzen-teal transition"
         >
           <span className={value ? 'text-gray-900' : 'text-gray-400'}>
             {value || placeholder}
           </span>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 text-gray-400 transition-transform ${
+              isOpen ? (openUpward ? '' : 'rotate-180') : (openUpward ? 'rotate-180' : '')
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -92,7 +111,9 @@ export default function SearchableCombobox({
         </button>
 
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-hidden">
+          <div className={`absolute z-10 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-hidden ${
+            openUpward ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}>
             {/* Search input */}
             <div className="p-2 border-b sticky top-0 bg-white">
               <div className="relative">
