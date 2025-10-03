@@ -3,17 +3,33 @@ import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
+// Force cache invalidation - v2
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('🚀 [START] GET /api/interventions/[id]');
+
   try {
+    console.log('📦 [STEP 1] Awaiting params...');
     const { id } = await params;
+    console.log('✅ [STEP 1] Params resolved:', { id });
+
+    console.log('🔑 [STEP 2] Loading env vars...');
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ [STEP 2] Env vars loaded:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey
+    });
 
+    console.log('🔌 [STEP 3] Creating Supabase client...');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ [STEP 3] Client created');
+
+    console.log('🔍 [STEP 4] Querying Supabase...');
     const { data, error } = await supabase
       .from('interventions')
       .select(`
@@ -47,14 +63,29 @@ export async function GET(
       .eq('id', id)
       .single();
 
+    console.log('📊 [STEP 4] Query result:', {
+      hasData: !!data,
+      hasError: !!error,
+      errorDetails: error ? { code: error.code, message: error.message } : null
+    });
+
     if (error) {
-      console.error('❌ Error fetching intervention:', error);
+      console.error('❌ [ERROR] Supabase error:', error);
       return NextResponse.json({ error: 'Intervention introuvable' }, { status: 404 });
     }
 
     if (!data) {
+      console.error('❌ [ERROR] No data returned');
       return NextResponse.json({ error: 'Intervention introuvable' }, { status: 404 });
     }
+
+    console.log('🔧 [STEP 5] Formatting response...');
+    console.log('📋 [DEBUG] Raw data structure:', {
+      hasInterventionTypes: !!data.intervention_types,
+      hasClients: !!data.clients,
+      hasVehicles: !!data.vehicles,
+      hasAgents: !!data.agents
+    });
 
     // Formater la réponse
     const intervention = {
@@ -103,9 +134,18 @@ export async function GET(
       photos: []
     };
 
+    console.log('✅ [STEP 5] Response formatted successfully');
+    console.log('🎉 [SUCCESS] Returning intervention data');
+
     return NextResponse.json(intervention);
   } catch (error) {
-    console.error('❌ Error:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    console.error('❌❌❌ [FATAL ERROR] Unhandled exception:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+
+    return NextResponse.json({
+      error: 'Erreur serveur',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
