@@ -4,47 +4,47 @@
 
 @layer base {
   :root {
-    /* Vercel-inspired neutral palette */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    /* Perplexity-inspired warm beige palette */
+    --background: 40 25% 97%; /* #FAF9F6 - beige crème très clair */
+    --foreground: 215 25% 20%; /* #1E293B - texte foncé */
 
-    /* Cards with subtle borders like Vercel */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    /* Cards en blanc pur */
+    --card: 0 0% 100%; /* #FFFFFF - blanc pur */
+    --card-foreground: 215 25% 20%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 215 25% 20%;
 
-    /* FleetZen teal as primary accent */
-    --primary: 174 64% 45%;
+    /* FleetZen teal (Perplexity turquoise) */
+    --primary: 174 64% 40%; /* #14B8A6 - turquoise Perplexity */
     --primary-foreground: 0 0% 100%;
 
-    /* Subtle gray secondary like Vercel */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    /* Surface secondaire beige */
+    --secondary: 40 20% 95%; /* #F5F2ED - beige secondaire */
+    --secondary-foreground: 215 25% 20%;
 
     /* Muted backgrounds */
-    --muted: 0 0% 97%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 40 20% 95%;
+    --muted-foreground: 215 16% 47%; /* #64748B - texte clair */
 
     /* Accent hover states */
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 40 20% 95%;
+    --accent-foreground: 215 25% 20%;
 
     /* Error states */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Vercel-style thin borders */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    /* Bordures grises claires */
+    --border: 214 14% 90%; /* #E5E7EB */
+    --input: 214 11% 82%; /* #D1D5DB */
 
     /* FleetZen teal focus ring */
-    --ring: 174 64% 45%;
+    --ring: 174 64% 40%;
 
-    /* Subtle rounded corners like Vercel */
-    --radius: 0.5rem;
+    /* Rounded corners style Perplexity */
+    --radius: 0.75rem;
   }
 
   .dark {
