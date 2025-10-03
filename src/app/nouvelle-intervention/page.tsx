@@ -29,13 +29,46 @@ export default function NouvelleInterventionPage() {
         const location = await requestGeolocation(true, 10000);
         setGpsData(location);
         console.log('📍 GPS captured:', location);
+        errorLogger.log('api_error', 'GPS captured successfully', {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy
+        });
       } catch (error) {
         console.error('❌ GPS error:', error);
-        setGpsError(error instanceof Error ? error.message : 'Erreur GPS');
+        const errorMessage = error instanceof Error ? error.message : 'Erreur GPS';
+        setGpsError(errorMessage);
+        errorLogger.log('validation_error', 'GPS capture failed', {
+          error: errorMessage
+        });
       }
     };
 
     captureGPS();
+
+    // Global error handler for uncaught errors
+    const handleGlobalError = (event: ErrorEvent) => {
+      errorLogger.log('unknown', 'Global error caught', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      errorLogger.log('unknown', 'Unhandled promise rejection', {
+        reason: event.reason?.toString()
+      });
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   // Définir les étapes selon le type de prestation
@@ -85,9 +118,18 @@ export default function NouvelleInterventionPage() {
   };
 
   const handleSubmit = async (finalData: any) => {
+    // Log début de soumission (avant toute validation)
+    errorLogger.log('api_error', '🚀 handleSubmit called', {
+      typePrestation,
+      hasFinalData: !!finalData,
+      finalDataKeys: finalData ? Object.keys(finalData) : [],
+      isSubmitting
+    });
+
     // Protection contre les double-clics
     if (isSubmitting) {
       console.log('⚠️ Soumission déjà en cours, ignoré');
+      errorLogger.log('validation_error', 'Double submission prevented', { isSubmitting: true });
       return;
     }
 
