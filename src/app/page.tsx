@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
+import { BottomNav } from '@/components/mobile/BottomNav';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-fleetzen-teal via-fleetzen-blue to-fleetzen-teal-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-fleetzen-teal via-fleetzen-blue to-fleetzen-teal-dark flex items-center justify-center p-4 pb-16">
       <div className="bg-card rounded-2xl border border-border shadow-2xl p-8 max-w-md w-full text-center">
         <div className="flex items-center justify-center mb-2">
           <svg className="w-10 h-10 text-fleetzen-teal-dark mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,6 +37,7 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }
