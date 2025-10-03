@@ -119,7 +119,7 @@ export default function ProfilePage() {
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => {/* TODO: Implement settings */}}
+            onClick={() => router.push('/settings')}
           >
             <Settings className="h-4 w-4 mr-2" />
             Paramètres
