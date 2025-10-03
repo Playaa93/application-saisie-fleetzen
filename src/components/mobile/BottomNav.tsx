@@ -12,7 +12,7 @@ const navItems = [
     label: "Accueil",
   },
   {
-    href: "/interventions/new",
+    href: "/nouvelle-intervention",
     icon: Plus,
     label: "Nouvelle",
   },
