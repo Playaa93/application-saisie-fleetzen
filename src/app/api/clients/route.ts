@@ -25,6 +25,7 @@ export async function GET() {
         coordinates
       `)
       .eq('is_active', true)
+      .neq('code', 'FLEETZEN-INTERNAL') // Exclure le client interne FleetZen
       .order('name');
 
     if (error) {
