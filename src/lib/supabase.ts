@@ -1,14 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Move env var access INSIDE functions to avoid module-level errors on Vercel Edge Runtime
 
 /**
  * Client-side Supabase client (anon key)
  * Use this in browser/client components
  */
 export const createBrowserClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
@@ -25,6 +26,9 @@ export const createBrowserClient = () => {
  * Has admin privileges - bypass RLS
  */
 export const createServerClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -38,6 +42,9 @@ export const createServerClient = () => {
  * Use this to make authenticated requests on behalf of a user
  */
 export const createAuthenticatedClient = (accessToken: string) => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: {
