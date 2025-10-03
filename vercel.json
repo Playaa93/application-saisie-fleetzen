@@ -4,11 +4,11 @@
   "framework": "nextjs",
   "installCommand": "npm ci",
   "functions": {
-    "app/api/**/*.ts": {
+    "src/app/api/**/*.ts": {
       "maxDuration": 10,
       "memory": 1024
     },
-    "app/api/sync/**/*.ts": {
+    "src/app/api/sync/**/*.ts": {
       "maxDuration": 30,
       "memory": 1024
     }
