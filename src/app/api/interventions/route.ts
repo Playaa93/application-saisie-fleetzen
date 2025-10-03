@@ -1,33 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Module-level logging for debugging
-console.log('📦 Module loaded: /api/interventions/route.ts');
-console.log('📦 Env vars at module level:', {
-  hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-  hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-  urlLength: process.env.NEXT_PUBLIC_SUPABASE_URL?.length || 0,
-  keyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0
-});
-
-// Remove non-null assertion to prevent module-level errors
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 export async function GET(request: NextRequest) {
   console.log('=== START GET /api/interventions ===');
 
   try {
+    // Get env vars inside function scope (not module level)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
     // Runtime check for environment variables
     if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Missing environment variables:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey
-      });
+      console.error('❌ Missing environment variables');
       return NextResponse.json({
-        error: 'Configuration error: Missing Supabase credentials',
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey
+        error: 'Configuration error: Missing Supabase credentials'
       }, { status: 500 });
     }
 
@@ -80,12 +66,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get env vars inside function scope
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
     // Runtime check for environment variables
     if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ POST: Missing environment variables:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey
-      });
+      console.error('❌ POST: Missing environment variables');
       return NextResponse.json({
         error: 'Configuration error: Missing Supabase credentials'
       }, { status: 500 });
