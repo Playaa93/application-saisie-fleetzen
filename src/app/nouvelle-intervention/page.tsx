@@ -72,26 +72,114 @@ export default function NouvelleInterventionPage() {
     }
 
     setIsSubmitting(true);
+
+    // Debug: vérifier les photos dans finalData
+    console.log('📸 Photos in finalData:', {
+      photosAvant: finalData.photosAvant,
+      photosAvantLength: finalData.photosAvant?.length,
+      photosApres: finalData.photosApres,
+      photosApresLength: finalData.photosApres?.length
+    });
+
     const completeData = {
-      ...formData,
-      ...finalData,
+      ...finalData, // ← finalData en premier pour ne pas être écrasé
+      ...formData,  // ← formData en second (ne devrait pas contenir photos)
       type: typePrestation === 'lavage' ? 'Lavage Véhicule' :
             typePrestation === 'carburant-livraison' ? 'Livraison Carburant' :
             typePrestation === 'carburant-cuve' ? 'Remplissage Cuve' : null
     };
+
+    // Debug: vérifier les photos dans completeData
+    console.log('📸 Photos in completeData:', {
+      photosAvant: completeData.photosAvant,
+      photosAvantLength: completeData.photosAvant?.length,
+      photosApres: completeData.photosApres,
+      photosApresLength: completeData.photosApres?.length
+    });
 
     try {
       const formDataToSend = new FormData();
       Object.keys(completeData).forEach(key => {
         const value = completeData[key];
 
-        if (key === 'photos' && Array.isArray(value)) {
+        // Gérer les photos AVANT
+        if (key === 'photosAvant' && Array.isArray(value)) {
+          console.log(`📸 Adding ${value.length} photos AVANT to FormData`);
+          value.forEach((photo: File) => {
+            console.log(`  - Photo AVANT:`, photo?.name, photo?.size);
+            formDataToSend.append('photosAvant', photo);
+          });
+        }
+        // Gérer les photos APRÈS
+        else if (key === 'photosApres' && Array.isArray(value)) {
+          console.log(`📸 Adding ${value.length} photos APRÈS to FormData`);
+          value.forEach((photo: File) => {
+            console.log(`  - Photo APRÈS:`, photo?.name, photo?.size);
+            formDataToSend.append('photosApres', photo);
+          });
+        }
+        // Gérer les photos MANOMETRE (pour livraison carburant)
+        else if (key === 'photoManometre' && Array.isArray(value)) {
+          console.log(`📸 Adding ${value.length} photos MANOMETRE to FormData`);
+          value.forEach((photo: File) => {
+            // Vérifier que c'est bien un File valide
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo MANOMETRE:`, photo.name, photo.size);
+              formDataToSend.append('photoManometre', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo MANOMETRE:`, photo);
+            }
+          });
+        }
+        // Gérer les photos JAUGES AVANT (Remplissage Cuve)
+        else if (key === 'photosJaugesAvant' && Array.isArray(value)) {
+          console.log(`📸 Adding ${value.length} photos JAUGES AVANT to FormData`);
+          value.forEach((photo: File) => {
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo JAUGES AVANT:`, photo.name, photo.size);
+              formDataToSend.append('photosJaugesAvant', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo JAUGES AVANT:`, photo);
+            }
+          });
+        }
+        // Gérer les photos JAUGES APRÈS (Remplissage Cuve)
+        else if (key === 'photosJaugesApres' && Array.isArray(value)) {
+          console.log(`📸 Adding ${value.length} photos JAUGES APRÈS to FormData`);
+          value.forEach((photo: File) => {
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo JAUGES APRÈS:`, photo.name, photo.size);
+              formDataToSend.append('photosJaugesApres', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo JAUGES APRÈS:`, photo);
+            }
+          });
+        }
+        // Gérer la photo TICKET (Remplissage Cuve)
+        else if (key === 'photoTicket' && Array.isArray(value)) {
+          console.log(`📸 Adding ${value.length} photo(s) TICKET to FormData`);
+          value.forEach((photo: File) => {
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo TICKET:`, photo.name, photo.size);
+              formDataToSend.append('photoTicket', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo TICKET:`, photo);
+            }
+          });
+        }
+        // Gérer les anciennes photos (compatibilité)
+        else if (key === 'photos' && Array.isArray(value)) {
           value.forEach((photo: File, index: number) => {
             formDataToSend.append(`photo${index}`, photo);
           });
-        } else if (value !== null && value !== undefined) {
-          // Ne pas ajouter les valeurs null/undefined
-          formDataToSend.append(key, value);
+        }
+        else if (value !== null && value !== undefined) {
+          // Sérialiser les objets en JSON (ex: carburant)
+          if (typeof value === 'object' && !Array.isArray(value)) {
+            formDataToSend.append(key, JSON.stringify(value));
+          } else {
+            formDataToSend.append(key, value);
+          }
         }
       });
 

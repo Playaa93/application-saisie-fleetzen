@@ -49,7 +49,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
     console.log('📝 LavageSteps - Syncing formData to data on step change', { formData, currentStep });
-    setData(formData);
+    setData(prevData => ({ ...prevData, ...formData }));
   }, [currentStep]); // Seulement quand l'étape change, pas quand formData change
 
   // Charger les clients depuis Supabase

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface PhotoUploadMultipleProps {
@@ -22,6 +22,21 @@ export default function PhotoUploadMultiple({
 }: PhotoUploadMultipleProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>(value);
+
+  // Synchroniser l'état interne avec la prop value
+  useEffect(() => {
+    // Seulement si le nombre de fichiers change ou si value devient vide
+    if (value.length !== files.length) {
+      setFiles(value);
+
+      // Cleanup des anciennes previews
+      previews.forEach(preview => URL.revokeObjectURL(preview));
+
+      // Créer les nouvelles previews
+      const newPreviews = value.map(file => URL.createObjectURL(file));
+      setPreviews(newPreviews);
+    }
+  }, [value.length]); // Dépendance sur la longueur, pas le tableau entier
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);

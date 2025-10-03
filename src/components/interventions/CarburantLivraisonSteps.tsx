@@ -39,7 +39,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
     console.log('📝 Syncing formData to data on step change', { formData, currentStep });
-    setData(formData);
+    setData(prevData => ({ ...prevData, ...formData }));
   }, [currentStep]); // Seulement quand l'étape change, pas quand formData change
 
   // Charger les clients depuis Supabase
@@ -326,8 +326,20 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Photos</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
-          <PhotoUploadMultiple label="Photo avant" helperText="Si remplissage: photo de la jauge" maxFiles={5} onChange={(files) => setData({ ...data, photosAvant: files })} value={data.photosAvant} />
-          <PhotoUploadMultiple label="Photo après" helperText="Si remplissage: photo de la jauge" maxFiles={5} onChange={(files) => setData({ ...data, photosApres: files })} value={data.photosApres} />
+          <PhotoUploadMultiple
+            label="Photo avant"
+            helperText="Si remplissage: photo de la jauge"
+            maxFiles={5}
+            onChange={(files) => setData(prevData => ({ ...prevData, photosAvant: files }))}
+            value={data.photosAvant}
+          />
+          <PhotoUploadMultiple
+            label="Photo après"
+            helperText="Si remplissage: photo de la jauge"
+            maxFiles={5}
+            onChange={(files) => setData(prevData => ({ ...prevData, photosApres: files }))}
+            value={data.photosApres}
+          />
           <div className="flex gap-4">
             <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
             <button type="submit" className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark">Suivant →</button>
