@@ -2,28 +2,44 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { LogIn, Mail, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { LogIn, Mail, Lock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function LoginPage() {
+type LoginResponse = {
+  success: boolean
+  data?: {
+    user: { id: string; email: string | null; role?: string | null }
+    session: {
+      accessToken: string
+      refreshToken: string
+      expiresIn: number
+      expiresAt: number | null
+      tokenType: string
+    }
+  }
+  error?: string
+  message?: string
+  errorCode?: string
+}
+
+export default function LoginPage(): JSX.Element {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault()
+    setError('')
     setIsLoading(true)
 
     try {
-      // Call Supabase Auth API
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -32,27 +48,39 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      const result = await response.json()
+      let payload: LoginResponse | null = null
 
-      if (!response.ok || !result.success) {
-        setError(result.error || 'Erreur de connexion')
+      try {
+        payload = await response.json()
+      } catch (jsonError) {
+        console.error('Login response parsing error:', jsonError)
+      }
+
+      if (!response.ok || !payload || !payload.success || !payload.data) {
+        const message = payload?.error || payload?.message || 'Erreur de connexion'
+        setError(message)
         return
       }
 
-      // Store session data
-      localStorage.setItem('sb-access-token', result.data.session.access_token)
-      localStorage.setItem('sb-refresh-token', result.data.session.refresh_token)
-      localStorage.setItem('agent', JSON.stringify(result.data.user))
+      const { session, user } = payload.data
 
-      // Store in cookie for middleware
-      document.cookie = `sb-access-token=${result.data.session.access_token}; path=/; max-age=${result.data.session.expires_in}`
+      try {
+        localStorage.setItem('sb-access-token', session.accessToken)
+        localStorage.setItem('sb-refresh-token', session.refreshToken)
+        localStorage.setItem('sb-token-type', session.tokenType)
+        localStorage.setItem('sb-session-expires-at', String(session.expiresAt ?? ''))
+        localStorage.setItem('agent', JSON.stringify(user))
+      } catch (storageError) {
+        console.error('Storage error:', storageError)
+      }
 
-      // Redirect to home
-      router.push("/")
+      setPassword('')
+
+      router.push('/')
       router.refresh()
-    } catch (err) {
-      console.error('Login error:', err)
-      setError("Erreur de connexion. Veuillez réessayer.")
+    } catch (requestError) {
+      console.error('Login error:', requestError)
+      setError('Erreur de connexion. Veuillez reessayer.')
     } finally {
       setIsLoading(false)
     }
@@ -69,7 +97,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Connexion Agent</CardTitle>
           <CardDescription>
-            Connectez-vous pour accéder à vos interventions
+            Connectez-vous pour acceder a vos interventions
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,7 +111,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="agent@fleetzen.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="pl-10"
                   required
                   autoComplete="email"
@@ -99,9 +127,9 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="********"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   className="pl-10"
                   required
                   autoComplete="current-password"
@@ -138,9 +166,9 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="text-sm text-primary hover:underline"
-                onClick={() => {/* TODO: Implement password reset */}}
+                onClick={() => { /* TODO: mot de passe oublie */ }}
               >
-                Mot de passe oublié ?
+                Mot de passe oublie ?
               </button>
             </div>
           </form>

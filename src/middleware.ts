@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -10,80 +9,93 @@ const protectedRoutes = [
   '/profil',
 ];
 
-// Public routes that don't require authentication
+// Public routes that do not require authentication
 const publicRoutes = ['/login', '/'];
 
-export async function middleware(request: NextRequest) {
+const assetExtensionPattern = /\.(?:svg|png|jpg|jpeg|gif|webp)$/i;
+
+function redirectToLogin(request: NextRequest, pathname: string, errorCode?: string): NextResponse {
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('redirect', pathname);
+  if (errorCode) {
+    loginUrl.searchParams.set('error', errorCode);
+  }
+  return NextResponse.redirect(loginUrl);
+}
+
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Initialize Supabase inside the function to avoid build-time issues
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.ico' ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    pathname === '/service-worker.js' ||
+    assetExtensionPattern.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
 
-  // Allow public routes
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
-  // Check if route needs authentication
   const needsAuth = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (!needsAuth) {
     return NextResponse.next();
   }
 
-  // Get session token from cookie or header
-  const token = request.cookies.get('sb-access-token')?.value ||
-                request.headers.get('authorization')?.replace('Bearer ', '');
+  const tokenFromCookie = request.cookies.get('sb-access-token')?.value;
+  const tokenFromHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  const token = tokenFromCookie || tokenFromHeader;
 
   if (!token) {
-    // No token, redirect to login
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(request, pathname);
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables in middleware');
+    return redirectToLogin(request, pathname, 'configuration_error');
   }
 
   try {
-    // Verify token with Supabase
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const verificationResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: supabaseAnonKey,
+      },
+      cache: 'no-store',
+    });
 
-    if (error || !user) {
-      // Invalid token, redirect to login
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      loginUrl.searchParams.set('error', 'session_expired');
-      return NextResponse.redirect(loginUrl);
+    if (!verificationResponse.ok) {
+      console.error('Supabase token validation failed', verificationResponse.status);
+      return redirectToLogin(request, pathname, 'session_expired');
     }
 
-    // Valid session, allow request
+    const user = await verificationResponse.json();
     const response = NextResponse.next();
 
-    // Add user ID to headers for API routes
-    response.headers.set('x-user-id', user.id);
-    response.headers.set('x-user-email', user.email || '');
+    if (user?.id) {
+      response.headers.set('x-user-id', user.id);
+    }
+
+    if (user?.email) {
+      response.headers.set('x-user-email', user.email);
+    }
 
     return response;
   } catch (error) {
-    console.error('Middleware error:', error);
-
-    // On error, redirect to login
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    console.error('Middleware error while validating token:', error);
+    return redirectToLogin(request, pathname);
   }
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes (handled separately)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/:path*'],
 };
