@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  // Removed 'output: standalone' - Vercel handles this automatically
   eslint: {
     ignoreDuringBuilds: true,
   },
