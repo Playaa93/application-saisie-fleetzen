@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import StepsSidebar from '@/components/StepsSidebar';
 import Step1TypePrestation from '@/components/interventions/Step1TypePrestation';
@@ -10,6 +10,7 @@ import LavageSteps from '@/components/interventions/LavageSteps';
 import CarburantLivraisonSteps from '@/components/interventions/CarburantLivraisonSteps';
 import CarburantCuveSteps from '@/components/interventions/CarburantCuveSteps';
 import { BottomNav } from '@/components/mobile/BottomNav';
+import { requestGeolocation, type GeolocationData } from '@/hooks/useGeolocation';
 
 export default function NouvelleInterventionPage() {
   const router = useRouter();
@@ -17,6 +18,24 @@ export default function NouvelleInterventionPage() {
   const [typePrestation, setTypePrestation] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gpsData, setGpsData] = useState<GeolocationData | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Capture GPS location when component mounts
+  useEffect(() => {
+    const captureGPS = async () => {
+      try {
+        const location = await requestGeolocation(true, 10000);
+        setGpsData(location);
+        console.log('📍 GPS captured:', location);
+      } catch (error) {
+        console.error('❌ GPS error:', error);
+        setGpsError(error instanceof Error ? error.message : 'Erreur GPS');
+      }
+    };
+
+    captureGPS();
+  }, []);
 
   // Définir les étapes selon le type de prestation
   const getSteps = () => {
@@ -86,7 +105,14 @@ export default function NouvelleInterventionPage() {
       ...formData,  // ← formData en second (ne devrait pas contenir photos)
       type: typePrestation === 'lavage' ? 'Lavage Véhicule' :
             typePrestation === 'carburant-livraison' ? 'Livraison Carburant' :
-            typePrestation === 'carburant-cuve' ? 'Remplissage Cuve' : null
+            typePrestation === 'carburant-cuve' ? 'Remplissage Cuve' : null,
+      // Add GPS data if available
+      ...(gpsData && {
+        latitude: gpsData.latitude,
+        longitude: gpsData.longitude,
+        gpsAccuracy: gpsData.accuracy,
+        gpsCapturedAt: new Date(gpsData.timestamp).toISOString(),
+      }),
     };
 
     // Debug: vérifier les photos dans completeData

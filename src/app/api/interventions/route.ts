@@ -99,22 +99,28 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Found intervention type ID:', interventionTypes.id);
 
-    // TODO: Récupérer l'agent_id de la session utilisateur
-    // Pour l'instant, on va chercher le premier agent disponible
-    const { data: agents, error: agentError } = await supabase
-      .from('agents')
-      .select('id')
-      .limit(1)
-      .single();
+    // Get authenticated agent from token
+    const token = request.cookies.get('sb-access-token')?.value ||
+                  request.headers.get('authorization')?.replace('Bearer ', '');
 
-    if (agentError || !agents) {
-      console.error('❌ No agent found:', agentError);
-      return NextResponse.json({
-        error: 'Aucun agent trouvé. Veuillez créer un agent d\'abord.'
-      }, { status: 400 });
+    let agentId: string | null = null;
+
+    if (token) {
+      const supabaseAuth = createClient(supabaseUrl, supabaseKey);
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+
+      if (!authError && user) {
+        agentId = user.id;
+        console.log('✅ Using authenticated agent ID:', agentId);
+      }
     }
 
-    console.log('✅ Using agent ID:', agents.id);
+    if (!agentId) {
+      console.error('❌ No authenticated agent');
+      return NextResponse.json({
+        error: 'Agent non authentifié'
+      }, { status: 401 });
+    }
 
     // Helper pour convertir "null" string en null réel
     const getFormValue = (key: string): string | null => {
@@ -181,15 +187,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Préparer les données d'intervention
+    // Get GPS data from formData
+    const latitude = getFormValue('latitude');
+    const longitude = getFormValue('longitude');
+    const gpsAccuracy = getFormValue('gpsAccuracy');
+    const gpsCapturedAt = getFormValue('gpsCapturedAt');
+
     const interventionData = {
       intervention_type_id: interventionTypes.id,
-      agent_id: agents.id,
+      agent_id: agentId,
       client_id: clientId,  // Required field
       vehicle_id: getFormValue('vehicleId'),  // Optional field
       status: 'completed' as const,
       notes: getFormValue('notes'),
       metadata: Object.keys(metadata).length > 0 ? metadata : null,
       completed_at: new Date().toISOString(),
+      // GPS coordinates
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+      gps_accuracy: gpsAccuracy ? parseFloat(gpsAccuracy) : null,
+      gps_captured_at: gpsCapturedAt || null,
     };
 
     console.log('🔍 Attempting to insert:', interventionData);
