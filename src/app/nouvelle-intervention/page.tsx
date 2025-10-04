@@ -12,6 +12,18 @@ import CarburantCuveSteps from '@/components/interventions/CarburantCuveSteps';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { requestGeolocation, type GeolocationData } from '@/hooks/useGeolocation';
 import { errorLogger } from '@/lib/errorLogger';
+import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
+import { useFormDraft } from '@/hooks/useFormDraft';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function NouvelleInterventionPage() {
   const router = useRouter();
@@ -21,6 +33,30 @@ export default function NouvelleInterventionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gpsData, setGpsData] = useState<GeolocationData | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Determine if there are unsaved changes
+  const hasUnsavedChanges = typePrestation !== null && Object.keys(formData).length > 0;
+
+  // Hook: Navigation guard to prevent accidental data loss
+  const {
+    showDialog: showNavigationDialog,
+    confirmNavigation,
+    cancelNavigation,
+    message: navigationMessage,
+  } = useUnsavedChangesWarning(hasUnsavedChanges);
+
+  // Hook: Auto-save and restore form drafts
+  const { clearDraft } = useFormDraft(
+    'intervention-draft', // Draft ID
+    typePrestation || '',
+    formData,
+    currentStep,
+    ({ typePrestation: restoredType, formData: restoredData, currentStep: restoredStep }) => {
+      setTypePrestation(restoredType);
+      setFormData(restoredData);
+      setCurrentStep(restoredStep);
+    }
+  );
 
   // Capture GPS location when component mounts
   useEffect(() => {
@@ -287,6 +323,8 @@ export default function NouvelleInterventionPage() {
       });
 
       if (response.ok) {
+        // Clear draft after successful submission
+        await clearDraft();
         alert('✅ Intervention enregistrée avec succès !');
         router.push('/interventions');
       } else {
@@ -317,12 +355,33 @@ export default function NouvelleInterventionPage() {
   const steps = getSteps();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row pb-16">
-      {/* Sidebar de progression */}
-      <StepsSidebar steps={steps} currentStep={currentStep} />
+    <>
+      {/* Navigation Guard Dialog */}
+      <AlertDialog open={showNavigationDialog} onOpenChange={() => {}}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitter sans sauvegarder ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {navigationMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelNavigation}>
+              Rester sur la page
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmNavigation} className="bg-destructive hover:bg-destructive/90">
+              Quitter sans sauvegarder
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      {/* Contenu principal */}
-      <div className="flex-1 p-4 md:p-8">
+      <div className="min-h-screen bg-background flex flex-col md:flex-row pb-16">
+        {/* Sidebar de progression */}
+        <StepsSidebar steps={steps} currentStep={currentStep} />
+
+        {/* Contenu principal */}
+        <div className="flex-1 p-4 md:p-8">
         <div className="max-w-3xl mx-auto">
           {/* Étape 1: Choix du type */}
           {currentStep === 1 && (
@@ -368,8 +427,8 @@ export default function NouvelleInterventionPage() {
             />
           )}
         </div>
+        <BottomNav />
       </div>
-      <BottomNav />
-    </div>
+    </>
   );
 }
