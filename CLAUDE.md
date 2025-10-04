@@ -4,6 +4,36 @@ This configuration combines: Next.js 15, shadcn/ui
 
 ---
 
+## 🚨 RÈGLE D'OR: JAMAIS DE RETOUR EN ARRIÈRE
+
+**POLITIQUE DE DÉBOGAGE (PRIORITÉ ABSOLUE)**:
+
+1. ✅ **TOUJOURS chercher la solution moderne/correcte AVANT de revenir en arrière**
+2. ✅ **Vérifier dans cet ordre**:
+   - Documentation officielle (Next.js, React, Supabase, etc.)
+   - Best practices 2025
+   - Forums spécialisés (Stack Overflow, GitHub Issues, Reddit)
+   - Demander à d'autres LLM (Codex, GPT-4, etc.) si bloqué
+3. ❌ **NE JAMAIS revenir à l'ancienne approche** sans avoir épuisé TOUTES ces options
+4. ❌ **NE JAMAIS proposer de rollback** sauf si explicitement demandé par l'utilisateur ET que c'est vraiment la dernière solution
+
+**Exemple de bon workflow**:
+```
+Problème: Module @supabase/ssr introuvable
+❌ MAUVAIS: "Je vais utiliser l'ancienne approche sans @supabase/ssr"
+✅ BON:
+  1. Vérifier si le package est bien installé (npm list)
+  2. Vérifier la doc Supabase officielle
+  3. Chercher sur GitHub Issues de @supabase/ssr
+  4. Nettoyer cache si nécessaire
+  5. Redémarrer serveur proprement
+  6. SEULEMENT SI RIEN NE FONCTIONNE: demander à l'utilisateur s'il veut rollback
+```
+
+**Philosophie**: Comprendre et résoudre > Contourner et régresser
+
+---
+
 ## 🚨 IMPORTANT: Project Documentation
 
 **ALWAYS consult CHANGELOG.md before starting any work** to understand recent changes, current architecture, and ongoing development patterns.
