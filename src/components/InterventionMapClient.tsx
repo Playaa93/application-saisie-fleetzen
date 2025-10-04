@@ -56,6 +56,11 @@ export function InterventionMapClient({
   const attribution =
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CartoDB</a>';
 
+  // Ne pas afficher la carte avant que le thème soit résolu
+  if (!mounted) {
+    return <div className={className} />;
+  }
+
   return (
     <div className={className}>
       <MapContainer

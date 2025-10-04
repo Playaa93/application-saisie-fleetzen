@@ -48,36 +48,37 @@
   }
 
   .dark {
-    /* Vercel dark mode: true black background */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
+    /* Gris ardoise moderne (Discord/Tailwind inspired) - doux pour les yeux */
+    --background: 222 47% 11%; /* #1A1F2E - gris bleuté foncé */
+    --foreground: 210 40% 98%; /* #F8FAFC - blanc cassé */
 
-    /* Dark cards with subtle borders */
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 98%;
+    /* Cards légèrement plus claires que le fond */
+    --card: 222 47% 15%; /* #1E2532 - gris ardoise */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 222 47% 15%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Brighter FleetZen teal in dark mode */
-    --primary: 174 70% 50%;
-    --primary-foreground: 0 0% 0%;
+    /* FleetZen teal vibrant en dark mode */
+    --primary: 174 70% 50%; /* #14B8A6 */
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 98%;
+    /* Secondary avec nuance bleue */
+    --secondary: 217 33% 17%; /* #1C2333 */
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%; /* #94A3B8 */
 
-    --accent: 0 0% 10%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    /* Dark borders like Vercel */
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
+    /* Bordures visibles mais subtiles */
+    --border: 217 33% 25%; /* #2D3548 */
+    --input: 217 33% 25%;
 
     --ring: 174 70% 50%;
   }
