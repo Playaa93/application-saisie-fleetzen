@@ -140,12 +140,12 @@ export default function ProfilPage() {
               </div>
               <div>
                 <CardTitle className="text-xl">{profile.fullName}</CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                   <Badge variant={profile.isActive ? "default" : "secondary"}>
                     {profile.isActive ? "Actif" : "Inactif"}
                   </Badge>
-                  <span className="text-sm">{roleLabels[profile.role] || profile.role}</span>
-                </CardDescription>
+                  <span>{roleLabels[profile.role] || profile.role}</span>
+                </div>
               </div>
             </div>
           </div>
