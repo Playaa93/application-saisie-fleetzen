@@ -4,6 +4,8 @@ import Script from "next/script"
 import "./globals.css"
 import { ThemeProvider } from "@/providers/theme-provider"
 import { ConnectionStatus } from "@/components/ConnectionStatus"
+import { SyncStatus } from "@/components/mobile/SyncStatus"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -56,7 +58,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ConnectionStatus />
+          <SyncStatus />
           {children}
+          <Toaster />
         </ThemeProvider>
         {/* PWA Service Worker Registration - Production only */}
         {process.env.NODE_ENV === 'production' && (

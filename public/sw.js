@@ -93,3 +93,129 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// Background Sync - Synchronisation automatique des interventions en attente
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-interventions') {
+    event.waitUntil(syncPendingInterventions());
+  }
+});
+
+async function syncPendingInterventions() {
+  try {
+    // Ouvrir IndexedDB
+    const db = await openDB();
+    const tx = db.transaction('pending-interventions', 'readonly');
+    const store = tx.objectStore('pending-interventions');
+    const index = store.index('by-status');
+
+    // Récupérer toutes les interventions en attente
+    const pending = await index.getAll('pending');
+
+    console.log(`[SW] Synchronisation de ${pending.length} interventions en attente`);
+
+    // Synchroniser chaque intervention
+    for (const item of pending) {
+      try {
+        // Mettre le statut à "syncing"
+        await updateStatus(db, item.id, 'syncing');
+
+        // Envoyer à l'API
+        const response = await fetch('/api/interventions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...item.data,
+            tempId: item.tempId,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Upload photos si présentes
+        if (item.photos && (item.photos.before || item.photos.after)) {
+          const formData = new FormData();
+          if (item.photos.before) formData.append('before', item.photos.before);
+          if (item.photos.after) formData.append('after', item.photos.after);
+          formData.append('interventionId', result.id);
+
+          await fetch('/api/interventions/photos', {
+            method: 'POST',
+            body: formData,
+          });
+        }
+
+        // Supprimer de IndexedDB après succès
+        await deleteFromDB(db, item.id);
+        console.log(`[SW] ✅ Intervention ${item.tempId} synchronisée`);
+
+      } catch (error) {
+        console.error(`[SW] ❌ Erreur sync ${item.tempId}:`, error);
+        await updateStatus(db, item.id, 'failed', error.message);
+      }
+    }
+
+    // Notifier l'utilisateur si des interventions ont été synchronisées
+    if (pending.length > 0) {
+      await self.registration.showNotification('FleetZen', {
+        body: `${pending.length} intervention(s) synchronisée(s)`,
+        icon: '/icons/icon-192x192.png',
+        tag: 'sync-complete',
+      });
+    }
+
+  } catch (error) {
+    console.error('[SW] Erreur synchronisation:', error);
+    throw error; // Relancer pour que le sync soit réessayé
+  }
+}
+
+// Helpers IndexedDB dans le Service Worker
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('FleetZenOfflineDB', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function updateStatus(db, id, status, error) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pending-interventions', 'readwrite');
+    const store = tx.objectStore('pending-interventions');
+    const getRequest = store.get(id);
+
+    getRequest.onsuccess = () => {
+      const item = getRequest.result;
+      if (item) {
+        item.status = status;
+        if (status === 'syncing') item.retryCount += 1;
+        if (error) item.lastError = error;
+
+        const updateRequest = store.put(item);
+        updateRequest.onsuccess = () => resolve();
+        updateRequest.onerror = () => reject(updateRequest.error);
+      } else {
+        resolve();
+      }
+    };
+
+    getRequest.onerror = () => reject(getRequest.error);
+  });
+}
+
+function deleteFromDB(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pending-interventions', 'readwrite');
+    const store = tx.objectStore('pending-interventions');
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}

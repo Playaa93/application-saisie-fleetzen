@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Palette, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingRow } from "./SettingRow";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -14,6 +16,11 @@ import {
 
 export function AppearanceSection() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Card>
@@ -29,16 +36,20 @@ export function AppearanceSection() {
           label="Thème"
           description="Choisir l'apparence de l'application"
         >
-          <Select value={theme} onValueChange={setTheme}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Thème" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="light">Clair</SelectItem>
-              <SelectItem value="dark">Sombre</SelectItem>
-              <SelectItem value="system">Auto</SelectItem>
-            </SelectContent>
-          </Select>
+          {!mounted ? (
+            <Skeleton className="h-11 w-[140px]" />
+          ) : (
+            <Select value={theme} onValueChange={setTheme}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Thème" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">Clair</SelectItem>
+                <SelectItem value="dark">Sombre</SelectItem>
+                <SelectItem value="system">Auto</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </SettingRow>
         <SettingRow
           icon={Globe}

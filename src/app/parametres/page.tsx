@@ -5,7 +5,7 @@ import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { NotificationsSection } from "@/components/settings/NotificationsSection";
 import { DataSection } from "@/components/settings/DataSection";
 import { AboutSection } from "@/components/settings/AboutSection";
-import { BottomNav } from "@/components/navigation/BottomNav";
+import { BottomNav } from "@/components/mobile/BottomNav";
 
 export const metadata: Metadata = {
   title: "Paramètres - FleetZen",

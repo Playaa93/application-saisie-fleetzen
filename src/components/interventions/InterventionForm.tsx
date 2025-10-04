@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PhotoCapture } from "./PhotoCapture"
 import { VehicleSelector } from "./VehicleSelector"
 import { ClientSelector } from "./ClientSelector"
+import { useOfflineSubmit } from "@/hooks/useOfflineSubmit"
+import { useToast } from "@/hooks/use-toast"
 import type { InterventionType, Vehicle, Client } from "@/types/intervention"
 
 // Mock data
@@ -31,11 +33,13 @@ interface InterventionFormProps {
 
 export function InterventionForm({ type }: InterventionFormProps) {
   const router = useRouter()
+  const { toast } = useToast()
+  const { submitIntervention, isSubmitting, isOnline } = useOfflineSubmit()
+
   const [vehicleId, setVehicleId] = useState("")
   const [clientId, setClientId] = useState("")
   const [notes, setNotes] = useState("")
   const [photos, setPhotos] = useState<{ before?: File; after?: File }>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Type-specific state
   const [washType, setWashType] = useState("")
@@ -52,33 +56,60 @@ export function InterventionForm({ type }: InterventionFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
 
-    try {
-      // TODO: Implement actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const formData = {
-        type,
-        vehicleId,
-        clientId,
-        notes,
-        photos,
-        // Type-specific data
-        ...(type === "lavage" && { washType, products: products.split(",").map(p => p.trim()) }),
-        ...(type === "carburant" && { fuelType, quantity: parseFloat(quantity), pricePerUnit: parseFloat(pricePerUnit) }),
-        ...(type === "cuve" && { taskType, currentLevel: parseFloat(currentLevel) }),
-      }
-
-      console.log("Intervention data:", formData)
-
-      // Navigate back to dashboard
-      router.push("/")
-    } catch (error) {
-      console.error("Error submitting intervention:", error)
-    } finally {
-      setIsSubmitting(false)
+    // Préparer les données de l'intervention
+    const interventionData = {
+      type,
+      vehicleId,
+      clientId,
+      notes,
+      // Type-specific data
+      ...(type === "lavage" && {
+        washType,
+        products: products.split(",").map(p => p.trim())
+      }),
+      ...(type === "carburant" && {
+        fuelType,
+        quantity: parseFloat(quantity),
+        pricePerUnit: parseFloat(pricePerUnit)
+      }),
+      ...(type === "cuve" && {
+        taskType,
+        currentLevel: parseFloat(currentLevel)
+      }),
     }
+
+    // Convertir les photos File en Blob
+    const photoBlobs = photos.before || photos.after
+      ? {
+          before: photos.before,
+          after: photos.after,
+        }
+      : undefined
+
+    // Utiliser le hook offline-first
+    await submitIntervention(
+      interventionData,
+      photoBlobs,
+      {
+        apiEndpoint: "/api/interventions",
+        onSuccess: () => {
+          toast({
+            title: isOnline ? "Intervention enregistrée" : "Intervention enregistrée hors ligne",
+            description: isOnline
+              ? "L'intervention a été synchronisée avec succès"
+              : "L'intervention sera synchronisée dès que la connexion sera rétablie",
+          })
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Une erreur est survenue lors de l'enregistrement",
+          })
+        },
+      }
+    )
   }
 
   const renderTypeSpecificFields = () => {

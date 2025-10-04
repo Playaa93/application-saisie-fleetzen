@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Database, RefreshCw, Trash2, WifiOff } from "lucide-react";
+import { Database, RefreshCw, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SettingRow } from "./SettingRow";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { SettingRow } from "./SettingRow";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function DataSection() {
-  const [offlineMode, setOfflineMode] = useState(false);
   const [showClearCacheDialog, setShowClearCacheDialog] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -64,15 +62,7 @@ export function DataSection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SettingRow
-            icon={WifiOff}
-            label="Mode hors ligne"
-            description="Travailler sans connexion internet"
-          >
-            <Switch checked={offlineMode} onCheckedChange={setOfflineMode} />
-          </SettingRow>
-
-          <div className="pt-2 border-t">
+          <div>
             <Button
               variant="outline"
               className="w-full"
