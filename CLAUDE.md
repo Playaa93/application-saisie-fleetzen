@@ -64,6 +64,199 @@ This is a shadcn/ui project focused on:
 10. **Escape HTML** in user-generated content
 11. **Implement CSP** headers when applicable
 
+## 🔒 Authentication & Authorization (Next.js 15 - 2025 Best Practices)
+
+**CRITICAL: Multi-Layer Security Approach**
+
+### Principle: Proximity to Data Source
+Always verify authentication **as close as possible** to where data is accessed.
+
+**Reference**: [Next.js Authentication Guide](https://nextjs.org/docs/app/guides/authentication)
+
+### 4-Layer Architecture (MANDATORY for all new features)
+
+#### Layer 1: Middleware (Optimistic Check Only)
+- ✅ Read session cookie for fast redirect
+- ✅ Redirect unauthenticated users immediately
+- ❌ NO database queries
+- ❌ NO API calls to verify tokens
+
+**Example**:
+```typescript
+// src/middleware.ts
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get('sb-access-token')?.value;
+  if (!token) {
+    return redirectToLogin(request, pathname);
+  }
+  // Let Server Components verify session
+  return NextResponse.next();
+}
+```
+
+#### Layer 2: Data Access Layer (DAL) - **PRIMARY AUTH POINT**
+- ✅ Centralize ALL data access logic
+- ✅ Verify session with `supabase.auth.getUser()` (NOT `getSession()`)
+- ✅ Use React `cache()` to avoid repeated auth checks
+- ✅ Redirect unauthorized users with `redirect('/login')`
+
+**Example**:
+```typescript
+// src/lib/dal.ts
+'use server';
+import { cache } from 'react';
+import { redirect } from 'next/navigation';
+
+export const verifySession = cache(async () => {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect('/login');
+  }
+
+  return { user, supabase };
+});
+
+export async function getDashboardStats() {
+  const { user, supabase } = await verifySession(); // Auth checked here ✅
+
+  // Now fetch data with verified session
+  const { data } = await supabase.from('stats').select('*');
+  return data;
+}
+```
+
+#### Layer 3: Server Components - **DATA FETCHING LAYER**
+- ✅ Call DAL functions directly (auth verified automatically)
+- ✅ Pass authenticated data to Client Components via props
+- ❌ NO client-side data fetching
+- ❌ NO useEffect for authentication
+
+**Example**:
+```typescript
+// src/app/page.tsx (Server Component by default)
+import { getDashboardStats } from '@/lib/dal';
+
+export default async function Page() {
+  // Auth verified automatically in DAL ✅
+  const stats = await getDashboardStats();
+
+  // Pass pre-authenticated data to Client Component
+  return <CompletionCard stats={stats} />;
+}
+```
+
+#### Layer 4: Client Components - **PRESENTATION LAYER**
+- ✅ Receive data via props from Server Component parent
+- ✅ Conditionally render sensitive UI elements
+- ✅ Keep `'use client'` for interactivity (events, state)
+- ❌ NO useEffect for data fetching
+- ❌ NO fetch() with localStorage tokens
+- ❌ NO direct API calls
+
+**Example**:
+```typescript
+// src/components/dashboard/CompletionCard.tsx
+'use client';
+
+interface Props {
+  stats: { total: number; completed: number };
+}
+
+export function CompletionCard({ stats }: Props) {
+  // Data pre-authenticated by Server Component parent ✅
+  return <Card>{stats.total} interventions</Card>;
+}
+```
+
+### Rules for New Features (MANDATORY)
+
+**ALWAYS follow this pattern when adding:**
+
+1. **Protected Pages**:
+   - Create DAL function with `verifySession()`
+   - Call DAL in Server Component
+   - Pass data to Client Components via props
+
+2. **API Routes**:
+   - Verify session at the START of route handler
+   - Use `verifySession()` or equivalent
+
+3. **Server Actions**:
+   - Verify session BEFORE performing mutations
+   - Never trust client-provided user IDs
+
+4. **Forms**:
+   - Use Server Actions (not client-side fetch)
+   - Validate + authenticate in Server Action
+
+### Anti-Patterns to AVOID ❌
+
+1. ❌ Client-side authentication checks with `useEffect`
+2. ❌ Fetching data in Client Components with `localStorage` tokens
+3. ❌ Database queries in middleware
+4. ❌ Relying on middleware alone for security
+5. ❌ Showing content before auth verification (causes flash)
+6. ❌ Using `getSession()` instead of `getUser()` (less secure)
+
+### Security Checklist for Code Review
+
+Before merging any PR with auth-related code, verify:
+
+- [ ] DAL function exists for data access?
+- [ ] `verifySession()` called before DB query?
+- [ ] Server Component fetches data, not Client Component?
+- [ ] No flash of unauthenticated content?
+- [ ] Middleware does optimistic check only (no DB)?
+- [ ] Client Components receive data via props?
+- [ ] No `useEffect` for authentication checks?
+- [ ] Using `getUser()` not `getSession()`?
+
+### Migration Guide (Old → New Pattern)
+
+**❌ OLD (2023-2024 Pattern)**:
+```typescript
+'use client';
+export function Dashboard() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('/api/data', {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => r.json()).then(setData);
+  }, []);
+
+  return <div>{data?.total}</div>;
+}
+```
+
+**✅ NEW (2025 Pattern)**:
+```typescript
+// Server Component (page.tsx)
+import { getDashboardStats } from '@/lib/dal';
+
+export default async function DashboardPage() {
+  const data = await getDashboardStats(); // Auth verified in DAL
+  return <Dashboard data={data} />;
+}
+
+// Client Component (Dashboard.tsx)
+'use client';
+export function Dashboard({ data }) {
+  return <div>{data.total}</div>;
+}
+```
+
+### Performance Benefits
+
+- **Faster initial load**: No client-side auth check delay
+- **No 401 errors**: Auth verified server-side before render
+- **Better UX**: No flash of unauthenticated content
+- **Improved security**: Token never exposed to client
+- **Better caching**: React `cache()` avoids repeated DB calls
+
 ## Performance Optimization
 
 *Combined from: Next.js 15, shadcn/ui*

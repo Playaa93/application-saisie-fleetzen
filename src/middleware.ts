@@ -48,52 +48,19 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.next();
   }
 
-  const tokenFromCookie = request.cookies.get('sb-access-token')?.value;
-  const tokenFromHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-  const token = tokenFromCookie || tokenFromHeader;
+  // Optimistic auth check - read cookie only, no DB query
+  // Real verification happens in Data Access Layer (DAL)
+  // https://nextjs.org/docs/app/guides/authentication
+  const token = request.cookies.get('sb-access-token')?.value;
 
   if (!token) {
+    // Fast redirect for unauthenticated users
     return redirectToLogin(request, pathname);
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables in middleware');
-    return redirectToLogin(request, pathname, 'configuration_error');
-  }
-
-  try {
-    const verificationResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: supabaseAnonKey,
-      },
-      cache: 'no-store',
-    });
-
-    if (!verificationResponse.ok) {
-      console.error('Supabase token validation failed', verificationResponse.status);
-      return redirectToLogin(request, pathname, 'session_expired');
-    }
-
-    const user = await verificationResponse.json();
-    const response = NextResponse.next();
-
-    if (user?.id) {
-      response.headers.set('x-user-id', user.id);
-    }
-
-    if (user?.email) {
-      response.headers.set('x-user-email', user.email);
-    }
-
-    return response;
-  } catch (error) {
-    console.error('Middleware error while validating token:', error);
-    return redirectToLogin(request, pathname);
-  }
+  // Token exists - allow request to proceed
+  // Server Components will verify session via DAL
+  return NextResponse.next();
 }
 
 export const config = {

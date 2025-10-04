@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,68 +10,23 @@ interface Task {
   type: string;
   status: string;
   scheduledAt?: string;
-  createdAt: string;
   client: string;
   vehicule: string;
 }
 
-export function TaskList() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface TaskListProps {
+  tasks: Task[];
+}
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
-    try {
-      const token = localStorage.getItem("sb-access-token");
-
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch("/api/stats/dashboard", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        // Filtrer les interventions à faire (pending + in_progress)
-        const tasksToday = result.data.tasksToday || [];
-        setTasks(tasksToday);
-      }
-    } catch (err) {
-      console.error("Tasks fetch error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListTodo className="h-5 w-5" />
-            À faire maintenant
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted rounded animate-pulse" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+/**
+ * TaskList - Client Component (for interactivity)
+ *
+ * Receives pre-authenticated data from Server Component parent.
+ * No useEffect, no fetch() = no 401 errors.
+ *
+ * @see src/app/page.tsx - Data fetched server-side via DAL
+ */
+export function TaskList({ tasks }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <Card>
