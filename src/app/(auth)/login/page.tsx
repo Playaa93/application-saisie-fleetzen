@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import Image from 'next/image'
 
 type LoginResponse = {
   success: boolean
@@ -80,39 +81,58 @@ export default function LoginPage(): JSX.Element {
       router.refresh()
     } catch (requestError) {
       console.error('Login error:', requestError)
-      setError('Erreur de connexion. Veuillez reessayer.')
+      setError('Erreur de connexion. Veuillez réessayer.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-b from-primary/10 to-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <LogIn className="h-8 w-8 text-primary" />
+    <div className="flex-1 flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-primary/5 via-primary/10 to-background relative overflow-hidden">
+      {/* Decorative background pattern */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+
+      <Card className="w-full max-w-md relative z-10 shadow-2xl border-primary/20 backdrop-blur-sm bg-card/95">
+        <CardHeader className="space-y-4 text-center pb-6">
+          {/* Logo FleetZen avec animation */}
+          <div className="flex justify-center">
+            <div className="relative animate-in fade-in zoom-in duration-500">
+              <Image
+                src="/logo-fleetzen.svg"
+                alt="FleetZen Logo"
+                width={120}
+                height={120}
+                className="drop-shadow-lg"
+                priority
+              />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Connexion Agent</CardTitle>
-          <CardDescription>
-            Connectez-vous pour acceder a vos interventions
-          </CardDescription>
+
+          <div className="space-y-2 animate-in slide-in-from-bottom-4 duration-700">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Bienvenue sur FleetZen
+            </CardTitle>
+            <CardDescription className="text-base">
+              Connectez-vous à votre espace agent
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+
+        <CardContent className="animate-in slide-in-from-bottom-6 duration-1000">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email professionnel
+              </Label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="agent@fleetzen.com"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11 transition-all focus:ring-2 focus:ring-primary/20"
                   required
                   autoComplete="email"
                   autoFocus
@@ -121,16 +141,18 @@ export default function LoginPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="password" className="text-sm font-medium">
+                Mot de passe
+              </Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="********"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11 transition-all focus:ring-2 focus:ring-primary/20"
                   required
                   autoComplete="current-password"
                 />
@@ -138,14 +160,14 @@ export default function LoginPage(): JSX.Element {
             </div>
 
             {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <p className="text-sm text-destructive font-medium">{error}</p>
+              <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg animate-in slide-in-from-top-2 duration-300">
+                <p className="text-sm text-destructive font-medium text-center">{error}</p>
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               size="lg"
               disabled={isLoading}
             >
@@ -156,24 +178,31 @@ export default function LoginPage(): JSX.Element {
                 </>
               ) : (
                 <>
-                  <LogIn className="h-4 w-4 mr-2" />
+                  <LogIn className="h-5 w-5 mr-2" />
                   Se connecter
                 </>
               )}
             </Button>
 
-            <div className="text-center">
+            <div className="text-center pt-2">
               <button
                 type="button"
-                className="text-sm text-primary hover:underline"
-                onClick={() => { /* TODO: mot de passe oublie */ }}
+                className="text-sm text-primary hover:text-primary/80 hover:underline transition-colors font-medium"
+                onClick={() => { /* TODO: mot de passe oublié */ }}
               >
-                Mot de passe oublie ?
+                Mot de passe oublié ?
               </button>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      {/* Footer branding */}
+      <div className="absolute bottom-4 left-0 right-0 text-center">
+        <p className="text-xs text-muted-foreground">
+          FleetZen © {new Date().getFullYear()} - Gestion d'interventions terrain
+        </p>
+      </div>
     </div>
   )
 }
