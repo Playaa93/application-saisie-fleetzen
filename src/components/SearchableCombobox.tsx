@@ -93,13 +93,13 @@ export default function SearchableCombobox({
           ref={buttonRef}
           type="button"
           onClick={handleToggle}
-          className="w-full p-3 border rounded-lg text-left flex items-center justify-between bg-white hover:border-fleetzen-teal transition"
+          className="w-full p-3 border border-border rounded-lg text-left flex items-center justify-between bg-card hover:border-primary transition"
         >
-          <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+          <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
             {value || placeholder}
           </span>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform ${
+            className={`w-5 h-5 text-muted-foreground transition-transform ${
               isOpen ? (openUpward ? '' : 'rotate-180') : (openUpward ? 'rotate-180' : '')
             }`}
             fill="none"
@@ -111,14 +111,14 @@ export default function SearchableCombobox({
         </button>
 
         {isOpen && (
-          <div className={`absolute z-10 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-hidden ${
+          <div className={`absolute z-10 w-full bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-hidden ${
             openUpward ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}>
             {/* Search input */}
-            <div className="p-2 border-b sticky top-0 bg-white">
+            <div className="p-2 border-b border-border sticky top-0 bg-popover">
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -130,7 +130,7 @@ export default function SearchableCombobox({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Rechercher..."
-                  className="w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fleetzen-teal"
+                  className="w-full pl-10 pr-3 py-2 border border-input bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -143,14 +143,14 @@ export default function SearchableCombobox({
                     key={option}
                     type="button"
                     onClick={() => handleSelect(option)}
-                    className={`w-full text-left px-4 py-2 hover:bg-fleetzen-teal/10 transition ${
-                      value === option ? 'bg-fleetzen-teal/5 text-fleetzen-teal font-medium' : ''
+                    className={`w-full text-left px-4 py-2 text-popover-foreground hover:bg-primary/10 transition ${
+                      value === option ? 'bg-primary/5 text-primary font-medium' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span>{option}</span>
                       {value === option && (
-                        <svg className="w-5 h-5 text-fleetzen-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -158,7 +158,7 @@ export default function SearchableCombobox({
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-3 text-gray-500 text-sm text-center">
+                <div className="px-4 py-3 text-muted-foreground text-sm text-center">
                   Aucun résultat trouvé
                 </div>
               )}
