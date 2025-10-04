@@ -88,13 +88,21 @@ export async function getDashboardStats() {
     vehicule: i.vehicle?.license_plate || 'Inconnu'
   })) || [];
 
+  // Get agent profile for name
+  const { data: agent } = await supabase
+    .from('agents')
+    .select('first_name')
+    .eq('id', user.id)
+    .single();
+
   return {
     stats: {
       total,
       completed,
       completionRate
     },
-    tasksToday
+    tasksToday,
+    agentName: agent?.first_name || 'Agent'
   };
 }
 

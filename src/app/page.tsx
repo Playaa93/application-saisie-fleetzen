@@ -3,6 +3,7 @@ import { BottomNav } from '@/components/mobile/BottomNav';
 import { CompletionCard } from '@/components/dashboard/CompletionCard';
 import { TaskList } from '@/components/dashboard/TaskList';
 import { DraftsListHome } from '@/components/dashboard/DraftsListHome';
+import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { Plus, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getDashboardStats } from '@/lib/dal';
@@ -17,7 +18,7 @@ import { getDashboardStats } from '@/lib/dal';
 export default async function HomePage() {
   // ✅ Auth verified automatically in DAL
   // ✅ Data fetched server-side
-  const { stats, tasksToday } = await getDashboardStats();
+  const { stats, tasksToday, agentName } = await getDashboardStats();
 
   return (
     <>
@@ -29,6 +30,9 @@ export default async function HomePage() {
             <p className="text-sm text-muted-foreground">Gérez vos interventions</p>
           </div>
         </div>
+
+        {/* Welcome Hero - personalized greeting with weather */}
+        <WelcomeHero name={agentName} />
 
         {/* Completion Card - receives pre-authenticated data */}
         <CompletionCard stats={stats} />
