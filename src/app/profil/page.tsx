@@ -6,6 +6,7 @@ import { User, Mail, Phone, Shield, Calendar, TrendingUp, CheckCircle, Clock, Al
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BottomNav } from "@/components/mobile/BottomNav";
 
 interface AgentProfile {
   id: string;
@@ -119,7 +120,8 @@ export default function ProfilPage() {
   };
 
   return (
-    <div className="flex-1 p-4 space-y-4 max-w-4xl mx-auto">
+    <>
+    <div className="flex-1 p-4 space-y-4 max-w-4xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mon Profil</h1>
@@ -266,5 +268,7 @@ export default function ProfilPage() {
         </CardContent>
       </Card>
     </div>
+    <BottomNav />
+    </>
   );
 }
