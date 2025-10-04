@@ -46,6 +46,11 @@ export async function reverseGeocode(
     // - User-Agent requis
     // - Max 1 requête/seconde
     // - Pas de cache permanent
+
+    // Timeout de 5 secondes pour éviter les blocages
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?` +
       `lat=${latitude}&` +
@@ -57,8 +62,11 @@ export async function reverseGeocode(
         headers: {
           'User-Agent': 'FleetZen/1.0 (Intervention Management App)',
         },
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Geocoding failed: ${response.status}`);
@@ -105,9 +113,15 @@ export async function reverseGeocode(
 
     return formatted;
   } catch (error) {
-    console.error('Erreur de géocodage inverse:', error);
-    // En cas d'erreur, retourner les coordonnées brutes
-    return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    console.warn('Géocodage inverse échoué (normal en dev/offline):', error instanceof Error ? error.message : 'Unknown error');
+
+    // En cas d'erreur (timeout, offline, CORS), retourner coordonnées formatées
+    const coords = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+    // Mettre en cache le fallback pour éviter de retenter
+    geocodeCache.set(cacheKey, coords);
+
+    return coords;
   }
 }
 
