@@ -22,7 +22,7 @@ const navItems = [
     label: "Historique",
   },
   {
-    href: "/profile",
+    href: "/profil",
     icon: User,
     label: "Profil",
   },
