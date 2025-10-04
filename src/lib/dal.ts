@@ -53,6 +53,7 @@ export async function getDashboardStats() {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   // Fetch all interventions for this agent today
+  console.log('🔍 Fetching interventions for agent:', user.id);
   const { data: interventions, error: interventionsError } = await supabase
     .from('interventions')
     .select(`
@@ -66,6 +67,13 @@ export async function getDashboardStats() {
     .eq('agent_id', user.id)
     .gte('created_at', today.toISOString())
     .lt('created_at', tomorrow.toISOString());
+
+  console.log('📊 Query result:', {
+    count: interventions?.length,
+    error: interventionsError,
+    errorKeys: interventionsError ? Object.keys(interventionsError) : [],
+    errorString: JSON.stringify(interventionsError)
+  });
 
   if (interventionsError) {
     console.error('Error fetching interventions:', interventionsError);

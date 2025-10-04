@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { CompletionCard } from '@/components/dashboard/CompletionCard';
 import { TaskList } from '@/components/dashboard/TaskList';
@@ -11,14 +13,30 @@ import { getDashboardStats } from '@/lib/dal';
 /**
  * Homepage - Server Component (Next.js 15 Best Practice)
  *
- * Data fetching happens server-side via DAL.
- * Auth is verified automatically in getDashboardStats().
- * No client-side data fetching = no 401 errors, no flash of unauthenticated content.
+ * Default landing page for field agents.
+ * Role-based redirects happen in layout files to prevent redirect loops.
  */
 export default async function HomePage() {
-  // ✅ Auth verified automatically in DAL
-  // ✅ Data fetched server-side
-  const { stats, tasksToday, agentName } = await getDashboardStats();
+  const supabase = await createClient();
+
+  // Check authentication
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  // Field agent homepage - show mobile app interface
+  // Note: Admin and client redirects are handled in their respective layout.tsx files
+  // This prevents redirect loops during navigation
+
+  // ✅ Field agent - show mobile app
+  // TEMPORAIRE: Désactiver getDashboardStats() pour debug RLS
+  const stats = { total: 0, completed: 0, completionRate: 0 };
+  const tasksToday: any[] = [];
+  const agentName = user.email?.split('@')[0] || 'Agent';
+
+  // const { stats, tasksToday, agentName } = await getDashboardStats();
 
   return (
     <>
