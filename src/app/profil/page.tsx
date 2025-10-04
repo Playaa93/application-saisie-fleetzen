@@ -121,7 +121,6 @@ export default function ProfilPage() {
   };
 
   return (
-    <>
     <div className="flex-1 p-4 space-y-4 max-w-4xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -207,8 +206,8 @@ export default function ProfilPage() {
           </div>
         </CardContent>
       </Card>
+
+      <BottomNav />
     </div>
-    <BottomNav />
-    </>
   );
 }
