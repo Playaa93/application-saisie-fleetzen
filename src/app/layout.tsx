@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import Script from "next/script"
 import "./globals.css"
-import { ThemeProvider } from "@/components/providers/ThemeProvider"
+import { ThemeProvider } from "@/providers/theme-provider"
 import { ConnectionStatus } from "@/components/ConnectionStatus"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -49,7 +49,12 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <ConnectionStatus />
           {children}
         </ThemeProvider>

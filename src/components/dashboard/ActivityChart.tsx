@@ -83,15 +83,6 @@ export function ActivityChart() {
               className="text-xs"
               tick={{ fill: 'hsl(var(--muted-foreground))' }}
             />
-            <Tooltip
-              cursor={{ fill: 'hsl(var(--accent))' }}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-            />
             <Bar
               dataKey="interventions"
               fill="hsl(var(--primary))"

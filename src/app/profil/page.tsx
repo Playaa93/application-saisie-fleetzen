@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Phone, Shield, Calendar } from "lucide-react";
+import { User, Mail, Phone, Shield, Calendar, Settings, LogOut } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -126,9 +126,19 @@ export default function ProfilPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mon Profil</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          Déconnexion
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.push("/parametres")}
+            title="Paramètres"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleLogout} title="Déconnexion">
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Profile Card */}
