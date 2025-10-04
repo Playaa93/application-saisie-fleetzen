@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Phone, Shield, Calendar, TrendingUp, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { User, Mail, Phone, Shield, Calendar } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BottomNav } from "@/components/mobile/BottomNav";
+import { ActivityChart } from "@/components/dashboard/ActivityChart";
 
 interface AgentProfile {
   id: string;
@@ -176,94 +177,23 @@ export default function ProfilPage() {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Activity Chart */}
+      <ActivityChart />
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-2xl font-bold">{stats.completed}</p>
-                <p className="text-xs text-muted-foreground">Terminées</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="text-2xl font-bold">{stats.inProgress}</p>
-                <p className="text-xs text-muted-foreground">En cours</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-2xl font-bold">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">En attente</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Performance Card */}
+      {/* Activity Summary - Non-comparative */}
       <Card>
         <CardHeader>
-          <CardTitle>Performance</CardTitle>
-          <CardDescription>Statistiques des 30 derniers jours</CardDescription>
+          <CardTitle>Mon activité</CardTitle>
+          <CardDescription>Répartition de vos interventions par type</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Taux de complétion</span>
-              <span className="text-2xl font-bold text-primary">{stats.completionRate}%</span>
-            </div>
-            <div className="w-full bg-secondary rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${stats.completionRate}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <p className="text-sm font-medium mb-3">Interventions par type</p>
-            <div className="space-y-2">
-              {Object.entries(stats.byType).map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{type}</span>
-                  <Badge variant="secondary">{count}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Interventions récentes (7 jours)</span>
-              <Badge>{stats.recent}</Badge>
-            </div>
+        <CardContent>
+          <div className="space-y-2">
+            {Object.entries(stats.byType).map(([type, count]) => (
+              <div key={type} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{type}</span>
+                <Badge variant="secondary">{count}</Badge>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
