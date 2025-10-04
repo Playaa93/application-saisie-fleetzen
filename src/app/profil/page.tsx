@@ -1,123 +1,30 @@
-"use client";
+import { redirect } from 'next/navigation';
+import { User, Mail, Phone, Shield, Calendar, Settings, LogOut } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { BottomNav } from '@/components/mobile/BottomNav';
+import { ActivityChart } from '@/components/dashboard/ActivityChart';
+import { getAgentProfile, getAgentActivityChart } from '@/lib/dal';
+import { LogoutButton } from './LogoutButton';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { User, Mail, Phone, Shield, Calendar, Settings, LogOut } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { BottomNav } from "@/components/mobile/BottomNav";
-import { ActivityChart } from "@/components/dashboard/ActivityChart";
-
-interface AgentProfile {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  phone: string;
-  role: string;
-  isActive: boolean;
-  memberSince: string;
-}
-
-interface AgentStats {
-  total: number;
-  completed: number;
-  pending: number;
-  inProgress: number;
-  recent: number;
-  byType: Record<string, number>;
-  completionRate: number;
-}
-
-export default function ProfilPage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<AgentProfile | null>(null);
-  const [stats, setStats] = useState<AgentStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("sb-access-token");
-
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      const response = await fetch("/api/agents/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        if (response.status === 401) {
-          localStorage.clear();
-          router.push("/login");
-          return;
-        }
-        setError(result.error || "Erreur lors du chargement du profil");
-        return;
-      }
-
-      setProfile(result.data.profile);
-      setStats(result.data.stats);
-    } catch (err) {
-      console.error("Profile fetch error:", err);
-      setError("Erreur de connexion");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    document.cookie = "sb-access-token=; path=/; max-age=0";
-    router.push("/login");
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Chargement du profil...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !profile || !stats) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="text-destructive">Erreur</CardTitle>
-            <CardDescription>{error || "Profil non trouvé"}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push("/")} className="w-full">
-              Retour à l'accueil
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+/**
+ * ProfilPage - Server Component (Next.js 15 Best Practice)
+ *
+ * Data fetching happens server-side via DAL.
+ * Auth is verified automatically in getAgentProfile().
+ * No client-side data fetching = no 401 errors, no flash of unauthenticated content.
+ */
+export default async function ProfilPage() {
+  // ✅ Auth verified automatically in DAL
+  // ✅ Data fetched server-side
+  const { profile, stats } = await getAgentProfile();
+  const chartData = await getAgentActivityChart();
 
   const roleLabels: Record<string, string> = {
-    admin: "Administrateur",
-    supervisor: "Superviseur",
-    field_agent: "Agent terrain",
+    admin: 'Administrateur',
+    supervisor: 'Superviseur',
+    field_agent: 'Agent terrain',
   };
 
   return (
@@ -129,14 +36,12 @@ export default function ProfilPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push("/parametres")}
+            onClick={() => redirect('/parametres')}
             title="Paramètres"
           >
             <Settings className="h-5 w-5" />
           </Button>
-          <Button variant="outline" size="icon" onClick={handleLogout} title="Déconnexion">
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <LogoutButton />
         </div>
       </div>
 
@@ -151,8 +56,8 @@ export default function ProfilPage() {
               <div>
                 <CardTitle className="text-xl">{profile.fullName}</CardTitle>
                 <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                  <Badge variant={profile.isActive ? "default" : "secondary"}>
-                    {profile.isActive ? "Actif" : "Inactif"}
+                  <Badge variant={profile.isActive ? 'default' : 'secondary'}>
+                    {profile.isActive ? 'Actif' : 'Inactif'}
                   </Badge>
                   <span>{roleLabels[profile.role] || profile.role}</span>
                 </div>
@@ -180,16 +85,16 @@ export default function ProfilPage() {
             <div className="flex items-center gap-3 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Membre depuis:</span>
-              <span>{new Date(profile.memberSince).toLocaleDateString("fr-FR")}</span>
+              <span>{new Date(profile.memberSince).toLocaleDateString('fr-FR')}</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Activity Chart */}
-      <ActivityChart />
+      {/* Activity Chart - receives pre-authenticated data */}
+      <ActivityChart chartData={chartData} />
 
-      {/* Activity Summary - Non-comparative */}
+      {/* Activity Summary */}
       <Card>
         <CardHeader>
           <CardTitle>Mon activité</CardTitle>

@@ -95,25 +95,123 @@ export async function getDashboardStats() {
 }
 
 /**
- * Get agent profile information.
+ * Get agent profile information with stats.
  *
- * @returns {Promise<AgentProfile>}
+ * @returns {Promise<{ profile, stats }>}
  */
 export async function getAgentProfile() {
   const { user, supabase } = await verifySession();
 
-  const { data: agent, error } = await supabase
+  // Fetch profile
+  const { data: agent, error: agentError } = await supabase
     .from('agents')
     .select('*')
     .eq('id', user.id)
     .single();
 
+  if (agentError) {
+    console.error('Error fetching agent profile:', agentError);
+    throw agentError;
+  }
+
+  // Fetch all interventions for stats
+  const { data: interventions, error: interventionsError } = await supabase
+    .from('interventions')
+    .select(`
+      id,
+      status,
+      created_at,
+      intervention_type:intervention_types(name)
+    `)
+    .eq('agent_id', user.id);
+
+  if (interventionsError) {
+    console.error('Error fetching interventions:', interventionsError);
+    throw interventionsError;
+  }
+
+  // Calculate stats
+  const total = interventions?.length || 0;
+  const completed = interventions?.filter(i => i.status === 'completed').length || 0;
+  const pending = interventions?.filter(i => i.status === 'pending').length || 0;
+  const inProgress = interventions?.filter(i => i.status === 'in_progress').length || 0;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  // Count by type
+  const byType: Record<string, number> = {};
+  interventions?.forEach(i => {
+    const type = i.intervention_type?.name || 'Inconnu';
+    byType[type] = (byType[type] || 0) + 1;
+  });
+
+  return {
+    profile: {
+      id: agent.id,
+      email: agent.email,
+      firstName: agent.first_name,
+      lastName: agent.last_name,
+      fullName: `${agent.first_name} ${agent.last_name}`,
+      phone: agent.phone || '',
+      role: agent.role,
+      isActive: agent.is_active,
+      memberSince: agent.created_at
+    },
+    stats: {
+      total,
+      completed,
+      pending,
+      inProgress,
+      recent: interventions?.filter(i => {
+        const createdAt = new Date(i.created_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return createdAt >= thirtyDaysAgo;
+      }).length || 0,
+      byType,
+      completionRate
+    }
+  };
+}
+
+/**
+ * Get activity chart data for last 7 days.
+ *
+ * @returns {Promise<ChartDataPoint[]>}
+ */
+export async function getAgentActivityChart() {
+  const { user, supabase } = await verifySession();
+
+  // Get interventions for last 7 days
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data: interventions, error } = await supabase
+    .from('interventions')
+    .select('created_at')
+    .eq('agent_id', user.id)
+    .gte('created_at', sevenDaysAgo.toISOString());
+
   if (error) {
-    console.error('Error fetching agent profile:', error);
+    console.error('Error fetching activity chart:', error);
     throw error;
   }
 
-  return agent;
+  // Generate chart data for last 7 days
+  const chartData: { date: string; interventions: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+
+    const count = interventions?.filter(intervention => {
+      const interventionDate = new Date(intervention.created_at);
+      return interventionDate.toDateString() === date.toDateString();
+    }).length || 0;
+
+    chartData.push({ date: dateStr, interventions: count });
+  }
+
+  return chartData;
 }
 
 /**
