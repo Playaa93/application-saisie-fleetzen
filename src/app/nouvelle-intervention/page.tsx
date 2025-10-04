@@ -4,16 +4,20 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import StepsSidebar from '@/components/StepsSidebar';
 import Step1TypePrestation from '@/components/interventions/Step1TypePrestation';
 import LavageSteps from '@/components/interventions/LavageSteps';
 import CarburantLivraisonSteps from '@/components/interventions/CarburantLivraisonSteps';
 import CarburantCuveSteps from '@/components/interventions/CarburantCuveSteps';
+import DraftsList from '@/components/DraftsList';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { requestGeolocation, type GeolocationData } from '@/hooks/useGeolocation';
 import { errorLogger } from '@/lib/errorLogger';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import { useFormDraft } from '@/hooks/useFormDraft';
+import { saveDraft, savePhotoBlobs, listDrafts, type DraftData } from '@/lib/indexedDB';
+import { triggerHaptic, HapticPattern } from '@/utils/haptics';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,12 +31,15 @@ import {
 
 export default function NouvelleInterventionPage() {
   const router = useRouter();
+  const [showDraftsList, setShowDraftsList] = useState(true); // Show drafts list first
   const [currentStep, setCurrentStep] = useState(1);
   const [typePrestation, setTypePrestation] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Loading state for manual save
   const [gpsData, setGpsData] = useState<GeolocationData | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Double confirmation for delete
 
   // Determine if there are unsaved changes
   const hasUnsavedChanges = typePrestation !== null && Object.keys(formData).length > 0;
@@ -45,18 +52,101 @@ export default function NouvelleInterventionPage() {
     message: navigationMessage,
   } = useUnsavedChangesWarning(hasUnsavedChanges);
 
-  // Hook: Auto-save and restore form drafts
-  const { clearDraft } = useFormDraft(
+  // Hook: Auto-save drafts (NO AUTO-RESTORE)
+  const { clearDraft, loadDraft } = useFormDraft(
     'intervention-draft', // Draft ID
     typePrestation || '',
     formData,
-    currentStep,
-    ({ typePrestation: restoredType, formData: restoredData, currentStep: restoredStep }) => {
-      setTypePrestation(restoredType);
-      setFormData(restoredData);
-      setCurrentStep(restoredStep);
-    }
+    currentStep
   );
+
+  // Auto-skip drafts list if no drafts exist
+  useEffect(() => {
+    const checkDrafts = async () => {
+      try {
+        const drafts = await listDrafts();
+        if (drafts.length === 0) {
+          setShowDraftsList(false); // Skip directly to form
+        }
+      } catch (error) {
+        console.error('Error checking drafts:', error);
+        setShowDraftsList(false); // On error, show form
+      }
+    };
+
+    checkDrafts();
+  }, []);
+
+  // Handle resuming a draft
+  const handleResumeDraft = async (draft: DraftData) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setTypePrestation(loadedDraft.typePrestation);
+      setFormData(loadedDraft.formData);
+      setCurrentStep(loadedDraft.currentStep);
+      setShowDraftsList(false); // Hide drafts list
+    }
+  };
+
+  // Handle starting new intervention
+  const handleStartNew = () => {
+    setShowDraftsList(false);
+    setTypePrestation(null);
+    setFormData({});
+    setCurrentStep(1);
+  };
+
+  // Manual save with immediate feedback
+  const handleSaveAndExit = async () => {
+    if (!typePrestation) return;
+
+    try {
+      setIsSaving(true);
+
+      // Prepare draft data (clone formData to separate photos)
+      const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'];
+      const formDataCopy: any = { ...formData };
+
+      // Save photos as Blobs
+      for (const field of photoFields) {
+        if (Array.isArray(formDataCopy[field]) && formDataCopy[field].length > 0) {
+          await savePhotoBlobs('intervention-draft', field, formDataCopy[field]);
+          // Replace with metadata for indexedDB
+          formDataCopy[field] = formDataCopy[field].map((f: File) => ({
+            name: f.name,
+            size: f.size,
+            type: f.type,
+          }));
+        }
+      }
+
+      // Save draft
+      const draft: DraftData = {
+        id: 'intervention-draft',
+        typePrestation,
+        formData: formDataCopy,
+        currentStep,
+        timestamp: Date.now(),
+      };
+
+      await saveDraft(draft);
+
+      toast.success('✅ Brouillon sauvegardé', {
+        description: 'Vous pouvez reprendre cette intervention plus tard',
+        duration: 1500,
+      });
+
+      confirmNavigation();
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast.error('❌ Erreur lors de la sauvegarde', {
+        description: 'Veuillez réessayer',
+        duration: 2500,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Capture GPS location when component mounts
   useEffect(() => {
@@ -150,7 +240,7 @@ export default function NouvelleInterventionPage() {
 
   const handleSubmit = async (finalData: any) => {
     // Log début de soumission (avant toute validation)
-    errorLogger.log('api_error', '🚀 handleSubmit called', {
+    console.log('🚀 handleSubmit called', {
       typePrestation,
       hasFinalData: !!finalData,
       finalDataKeys: finalData ? Object.keys(finalData) : [],
@@ -198,7 +288,7 @@ export default function NouvelleInterventionPage() {
     });
 
     try {
-      errorLogger.log('api_error', 'Starting intervention submission', {
+      console.log('🚀 Starting intervention submission', {
         type: completeData.type,
         hasPhotosAvant: !!completeData.photosAvant,
         hasPhotosApres: !!completeData.photosApres,
@@ -293,10 +383,9 @@ export default function NouvelleInterventionPage() {
       // Get token for Authorization header (more reliable than cookies on mobile)
       const token = typeof window !== 'undefined' ? localStorage.getItem('sb-access-token') : null;
 
-      errorLogger.log('api_error', 'Sending request', {
+      console.log('📤 Sending request to /api/interventions', {
         hasToken: !!token,
-        formDataKeys: Array.from(formDataToSend.keys()),
-        url: '/api/interventions'
+        formDataKeys: Array.from(formDataToSend.keys())
       });
 
       const response = await fetch('/api/interventions', {
@@ -316,15 +405,23 @@ export default function NouvelleInterventionPage() {
         responseData = { rawText: responseText };
       }
 
-      errorLogger.log('api_error', `Response received: ${response.status}`, {
-        status: response.status,
-        ok: response.ok,
-        response: responseData
-      });
-
       if (response.ok) {
+        console.log('✅ Intervention created successfully', {
+          status: response.status,
+          response: responseData
+        });
+
         // Clear draft after successful submission
         await clearDraft();
+
+        // Reset form state to prevent auto-save after submission
+        setTypePrestation(null);
+        setFormData({});
+        setCurrentStep(1);
+
+        // Haptic feedback succès
+        triggerHaptic(HapticPattern.SUCCESS);
+
         alert('✅ Intervention enregistrée avec succès !');
         router.push('/interventions');
       } else {
@@ -336,6 +433,9 @@ export default function NouvelleInterventionPage() {
           fullResponse: responseText
         });
 
+        // Haptic feedback erreur
+        triggerHaptic(HapticPattern.ERROR);
+
         alert(`❌ ${errorMessage}`);
         setIsSubmitting(false);
       }
@@ -346,6 +446,9 @@ export default function NouvelleInterventionPage() {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
       });
+
+      // Haptic feedback erreur critique
+      triggerHaptic(HapticPattern.ERROR);
 
       alert('❌ Erreur de connexion. Vérifiez votre connexion internet.');
       setIsSubmitting(false);
@@ -360,38 +463,110 @@ export default function NouvelleInterventionPage() {
       <AlertDialog open={showNavigationDialog} onOpenChange={() => {}}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Quitter sans sauvegarder ?</AlertDialogTitle>
+            <AlertDialogTitle>Sauvegarder votre intervention ?</AlertDialogTitle>
             <AlertDialogDescription>
-              {navigationMessage}
+              Vous avez des modifications non sauvegardées. Que souhaitez-vous faire ?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel onClick={cancelNavigation}>
               Rester sur la page
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmNavigation} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleSaveAndExit}
+              disabled={isSaving}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? (
+                <>🔄 Sauvegarde en cours...</>
+              ) : (
+                <>💾 Sauvegarder brouillon</>
+              )}
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isSaving}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Quitter sans sauvegarder
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="min-h-screen bg-background flex flex-col md:flex-row pb-16">
-        {/* Sidebar de progression */}
-        <StepsSidebar steps={steps} currentStep={currentStep} />
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous certain de vouloir quitter sans sauvegarder ? Toutes les données de cette intervention seront définitivement perdues.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                try {
+                  // Delete draft and navigate
+                  await clearDraft();
 
-        {/* Contenu principal */}
-        <div className="flex-1 p-4 md:p-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Étape 1: Choix du type */}
-          {currentStep === 1 && (
-            <Step1TypePrestation
-              onNext={(type) => {
-                setTypePrestation(type);
-                setCurrentStep(2);
+                  toast.info('🗑️ Brouillon supprimé', {
+                    description: 'Les données ont été effacées',
+                    duration: 2000,
+                  });
+
+                  setShowDeleteConfirm(false);
+                  confirmNavigation();
+                } catch (error) {
+                  console.error('Error deleting draft:', error);
+                  toast.error('❌ Erreur lors de la suppression', {
+                    description: 'Veuillez réessayer',
+                    duration: 2500,
+                  });
+                }
               }}
-            />
-          )}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Oui, supprimer tout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="min-h-screen bg-background flex flex-col md:flex-row pb-16">
+        {/* Show DraftsList if no intervention started */}
+        {showDraftsList && !typePrestation && (
+          <div className="flex-1 p-4 md:p-8">
+            <div className="max-w-3xl mx-auto">
+              <DraftsList
+                onResumeDraft={handleResumeDraft}
+                onStartNew={handleStartNew}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Show intervention form if started */}
+        {!showDraftsList && (
+          <>
+            {/* Sidebar de progression */}
+            <StepsSidebar steps={steps} currentStep={currentStep} />
+
+            {/* Contenu principal */}
+            <div className="flex-1 p-4 md:p-8">
+              <div className="max-w-3xl mx-auto">
+                {/* Étape 1: Choix du type */}
+                {currentStep === 1 && (
+                  <Step1TypePrestation
+                    onNext={(type) => {
+                      setTypePrestation(type);
+                      setCurrentStep(2);
+                    }}
+                  />
+                )}
 
           {/* Formulaires selon le type */}
           {typePrestation === 'lavage' && currentStep > 1 && (
@@ -416,17 +591,21 @@ export default function NouvelleInterventionPage() {
             />
           )}
 
-          {typePrestation === 'carburant-cuve' && currentStep > 1 && (
-            <CarburantCuveSteps
-              currentStep={currentStep - 1}
-              formData={formData}
-              onNext={handleNext}
-              onPrevious={handlePrevious}
-              onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-            />
-          )}
-        </div>
+                {typePrestation === 'carburant-cuve' && currentStep > 1 && (
+                  <CarburantCuveSteps
+                    currentStep={currentStep - 1}
+                    formData={formData}
+                    onNext={handleNext}
+                    onPrevious={handlePrevious}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         <BottomNav />
       </div>
     </>

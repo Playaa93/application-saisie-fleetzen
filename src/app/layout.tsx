@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/providers/theme-provider"
 import { ConnectionStatus } from "@/components/ConnectionStatus"
 import { SyncStatus } from "@/components/mobile/SyncStatus"
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -61,6 +62,17 @@ export default function RootLayout({
           <SyncStatus />
           {children}
           <Toaster />
+          <SonnerToaster
+            position="bottom-center"
+            richColors
+            closeButton={false}
+            expand={false}
+            swipeToDismiss={true}
+            toastOptions={{
+              duration: 1500,
+              className: 'toast-compact',
+            }}
+          />
         </ThemeProvider>
         {/* PWA Service Worker Registration - Production only */}
         {process.env.NODE_ENV === 'production' && (

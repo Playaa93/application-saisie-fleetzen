@@ -5,6 +5,7 @@ import { Camera, X, Image as ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { triggerHaptic, HapticPattern } from "@/utils/haptics"
 
 interface PhotoCaptureProps {
   type: "before" | "after" | "during"
@@ -33,6 +34,9 @@ export function PhotoCapture({
         setPreview(reader.result as string)
       }
       reader.readAsDataURL(file)
+
+      // Haptic feedback on successful capture
+      triggerHaptic(HapticPattern.MEDIUM)
 
       // Pass file to parent
       onPhotoCapture(file, type)

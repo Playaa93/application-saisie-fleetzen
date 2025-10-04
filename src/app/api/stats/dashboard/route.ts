@@ -61,11 +61,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calcul des stats
-    const total = interventions?.length || 0;
-    const completed = interventions?.filter(i => i.status === 'completed').length || 0;
-    const inProgress = interventions?.filter(i => i.status === 'in_progress').length || 0;
-    const pending = interventions?.filter(i => i.status === 'pending').length || 0;
+    // Filter interventions for today only
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayInterventions = interventions?.filter(i => {
+      const createdAt = new Date(i.created_at);
+      return createdAt >= today && createdAt < tomorrow;
+    }) || [];
+
+    // Calcul des stats (uniquement pour aujourd'hui)
+    const total = todayInterventions.length;
+    const completed = todayInterventions.filter(i => i.status === 'completed').length;
+    const inProgress = todayInterventions.filter(i => i.status === 'in_progress').length;
+    const pending = todayInterventions.filter(i => i.status === 'pending').length;
 
     // Stats par type
     const byType = interventions?.reduce((acc, intervention) => {
@@ -101,11 +112,6 @@ export async function GET(request: NextRequest) {
     });
 
     // Interventions à faire du jour (pending + in_progress)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
     const tasksToday = interventions?.filter(i => {
       // Inclure pending et in_progress
       if (i.status !== 'pending' && i.status !== 'in_progress') return false;

@@ -1,53 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Use same pattern as /api/clients which works
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get agent_id from query params (optional filter)
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agent_id');
+    const myInterventions = searchParams.get('my') === 'true';
 
-    const { data: interventions, error } = await supabase
-      .from('interventions')
-      .select('id, created_at, status, notes, intervention_type_id, client_id, vehicle_id')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    // Get authenticated user if filtering by "my interventions"
+    let currentUserId: string | null = null;
+    if (myInterventions) {
+      const token = request.cookies.get('sb-access-token')?.value ||
+                    request.headers.get('authorization')?.replace('Bearer ', '');
 
-    if (error) {
-      console.error('Error fetching interventions:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch interventions' },
-        { status: 500 }
-      );
+      if (token) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        currentUserId = user?.id || null;
+      }
     }
 
-    // Simple mapping
-    const formatted = (interventions || []).map(intervention => ({
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Build query with optional agent filter
+    let query = supabase
+      .from('interventions')
+      .select(`
+        *,
+        intervention_types (name),
+        clients (name),
+        vehicles (license_plate, make, model),
+        agents (first_name, last_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    // Apply agent filter if specified
+    if (agentId) {
+      query = query.eq('agent_id', agentId);
+    } else if (myInterventions && currentUserId) {
+      query = query.eq('agent_id', currentUserId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    // Mapper les champs pour compatibilité frontend
+    const interventions = data.map(intervention => ({
       id: intervention.id,
-      type: `Type ${intervention.intervention_type_id}`,
-      client: `Client ${intervention.client_id}`,
-      vehicule: intervention.vehicle_id ? `Vehicle ${intervention.vehicle_id}` : 'N/A',
+      type: intervention.intervention_types?.name || '',
+      client: intervention.clients?.name || '',
+      vehicule: intervention.vehicles?.license_plate ?
+        `${intervention.vehicles.license_plate} - ${intervention.vehicles.make} ${intervention.vehicles.model}` : '',
+      agent: intervention.agents ?
+        `${intervention.agents.first_name} ${intervention.agents.last_name}` : 'Non assigné',
+      agentId: intervention.agent_id,
+      kilometres: null, // Pas de champ kilomètres dans la table
+      notes: intervention.notes,
       status: intervention.status,
       creeLe: intervention.created_at,
+      photos: [] // Pas encore implémenté
     }));
 
-    return NextResponse.json(formatted);
-
+    return NextResponse.json(interventions);
   } catch (error) {
-    console.error('Error in GET /api/interventions:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('❌ Error fetching interventions:', error);
+    console.error('📋 Full error:', JSON.stringify(error, null, 2));
+    return NextResponse.json({ error: 'Erreur de récupération' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const formData = await request.formData();
 
     // Récupérer le type d'intervention en texte
@@ -469,23 +497,9 @@ export async function POST(request: NextRequest) {
       photoTicketUploaded: photoTicketUrls.length
     });
   } catch (error) {
-    console.error('❌ Error creating intervention:', error);
-    console.error('❌ Error type:', typeof error);
-    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-
-    // Return detailed error for debugging
-    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-    const errorDetails = error instanceof Error ? {
-      name: error.name,
-      message: error.message,
-      stack: error.stack?.split('\n').slice(0, 3).join('\n') // First 3 lines only
-    } : { raw: String(error) };
-
+    console.error('Error creating intervention:', error);
     return NextResponse.json({
-      error: 'Erreur lors de la création de l\'intervention',
-      message: errorMessage,
-      details: errorDetails,
-      timestamp: new Date().toISOString()
+      error: 'Erreur lors de la création de l\'intervention'
     }, { status: 500 });
   }
 }

@@ -1,65 +1,506 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get agent_id from query params (optional filter)
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agent_id');
+    const myInterventions = searchParams.get('my') === 'true';
 
-    const { data, error } = await supabase
-      .from('interventions')
-      .select(`
-        id,
-        created_at,
-        status,
-        intervention_types (
-          name,
-          code
-        ),
-        clients (
-          name
-        ),
-        vehicles (
-          license_plate,
-          make,
-          model
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    // Get authenticated user if filtering by "my interventions"
+    let currentUserId: string | null = null;
+    if (myInterventions) {
+      const token = request.cookies.get('sb-access-token')?.value ||
+                    request.headers.get('authorization')?.replace('Bearer ', '');
 
-    if (error) {
-      console.error('Error fetching interventions:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch interventions' },
-        { status: 500 }
-      );
+      if (token) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        currentUserId = user?.id || null;
+      }
     }
 
-    // Formater les données pour correspondre à l'interface frontend
-    const interventions = (data || []).map(intervention => ({
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Build query with optional agent filter
+    let query = supabase
+      .from('interventions')
+      .select(`
+        *,
+        intervention_types (name),
+        clients (name),
+        vehicles (license_plate, make, model),
+        agents (first_name, last_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    // Apply agent filter if specified
+    if (agentId) {
+      query = query.eq('agent_id', agentId);
+    } else if (myInterventions && currentUserId) {
+      query = query.eq('agent_id', currentUserId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    // Mapper les champs pour compatibilité frontend
+    const interventions = data.map(intervention => ({
       id: intervention.id,
-      type: intervention.intervention_types?.name || 'Type inconnu',
-      client: intervention.clients?.name || 'Client inconnu',
-      vehicule: intervention.vehicles
-        ? `${intervention.vehicles.license_plate} - ${intervention.vehicles.make} ${intervention.vehicles.model}`
-        : 'Aucun véhicule',
+      type: intervention.intervention_types?.name || '',
+      client: intervention.clients?.name || '',
+      vehicule: intervention.vehicles?.license_plate ?
+        `${intervention.vehicles.license_plate} - ${intervention.vehicles.make} ${intervention.vehicles.model}` : '',
+      agent: intervention.agents ?
+        `${intervention.agents.first_name} ${intervention.agents.last_name}` : 'Non assigné',
+      agentId: intervention.agent_id,
+      kilometres: null, // Pas de champ kilomètres dans la table
+      notes: intervention.notes,
+      status: intervention.status,
       creeLe: intervention.created_at,
-      status: intervention.status
+      photos: [] // Pas encore implémenté
     }));
+
+    return NextResponse.json({ interventions });
+  } catch (error) {
+    console.error('❌ Error fetching interventions:', error);
+    console.error('📋 Full error:', JSON.stringify(error, null, 2));
+    return NextResponse.json({ error: 'Erreur de récupération' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const formData = await request.formData();
+
+    // Récupérer le type d'intervention en texte
+    const interventionTypeName = formData.get('type') as string;
+
+    console.log('🔍 Looking up intervention type:', interventionTypeName);
+
+    // Chercher l'intervention_type_id correspondant
+    const { data: interventionTypes, error: typeError } = await supabase
+      .from('intervention_types')
+      .select('id')
+      .eq('name', interventionTypeName)
+      .single();
+
+    if (typeError || !interventionTypes) {
+      console.error('❌ Intervention type not found:', interventionTypeName, typeError);
+      return NextResponse.json({
+        error: `Type d'intervention "${interventionTypeName}" introuvable`
+      }, { status: 400 });
+    }
+
+    console.log('✅ Found intervention type ID:', interventionTypes.id);
+
+    // Get authenticated agent from token
+    const token = request.cookies.get('sb-access-token')?.value ||
+                  request.headers.get('authorization')?.replace('Bearer ', '');
+
+    let agentId: string | null = null;
+
+    if (token) {
+      const supabaseAuth = createClient(supabaseUrl, supabaseKey);
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+
+      if (!authError && user) {
+        agentId = user.id;
+        console.log('✅ Using authenticated agent ID:', agentId);
+      }
+    }
+
+    if (!agentId) {
+      console.error('❌ No authenticated agent');
+      return NextResponse.json({
+        error: 'Agent non authentifié'
+      }, { status: 401 });
+    }
+
+    // Helper pour convertir "null" string en null réel
+    const getFormValue = (key: string): string | null => {
+      const value = formData.get(key) as string;
+      return (value === 'null' || value === 'undefined' || !value) ? null : value;
+    };
+
+    // Extraire TOUTES les données du formulaire pour les métadonnées
+    const metadata: Record<string, any> = {};
+    const excludedKeys = ['type', 'clientId', 'vehicleId', 'notes', 'client', 'vehicule'];
+
+    for (const [key, value] of formData.entries()) {
+      // Ignorer les champs photo et les champs déjà mappés
+      if (!key.startsWith('photo') && !excludedKeys.includes(key)) {
+        metadata[key] = value;
+      }
+    }
+
+    console.log('📦 Metadata captured:', metadata);
+
+    // Gérer le client_id : utiliser un client interne pour "Remplissage Cuve"
+    let clientId = getFormValue('clientId');
+
+    // Si pas de clientId ET que c'est un "Remplissage Cuve", créer/utiliser client interne
+    if (!clientId && interventionTypeName === 'Remplissage Cuve') {
+      console.log('🏢 Remplissage Cuve détecté - recherche du client interne...');
+
+      // Chercher ou créer le client "FleetZen - Opérations Internes"
+      const { data: internalClient, error: clientSearchError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('code', 'FLEETZEN-INTERNAL')
+        .single();
+
+      if (internalClient) {
+        console.log('✅ Client interne trouvé:', internalClient.id);
+        clientId = internalClient.id;
+      } else {
+        console.log('📝 Création du client interne...');
+        const { data: newClient, error: createError } = await supabase
+          .from('clients')
+          .insert([{
+            name: 'FleetZen - Opérations Internes',
+            code: 'FLEETZEN-INTERNAL',
+            metadata: { internal: true, description: 'Client virtuel pour opérations internes' }
+          }])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Erreur création client interne:', createError);
+          throw new Error('Impossible de créer le client interne');
+        }
+
+        console.log('✅ Client interne créé:', newClient.id);
+        clientId = newClient.id;
+      }
+    }
+
+    if (!clientId) {
+      return NextResponse.json({
+        error: 'client_id requis pour cette intervention'
+      }, { status: 400 });
+    }
+
+    // Préparer les données d'intervention
+    // Get GPS data from formData
+    const latitude = getFormValue('latitude');
+    const longitude = getFormValue('longitude');
+    const gpsAccuracy = getFormValue('gpsAccuracy');
+    const gpsCapturedAt = getFormValue('gpsCapturedAt');
+
+    const interventionData = {
+      intervention_type_id: interventionTypes.id,
+      agent_id: agentId,
+      client_id: clientId,  // Required field
+      vehicle_id: getFormValue('vehicleId'),  // Optional field
+      status: 'completed' as const,
+      notes: getFormValue('notes'),
+      metadata: Object.keys(metadata).length > 0 ? metadata : null,
+      completed_at: new Date().toISOString(),
+      // GPS coordinates
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+      gps_accuracy: gpsAccuracy ? parseFloat(gpsAccuracy) : null,
+      gps_captured_at: gpsCapturedAt || null,
+    };
+
+    console.log('🔍 Attempting to insert:', interventionData);
+
+    // Insérer dans Supabase
+    const { data, error } = await supabase
+      .from('interventions')
+      .insert([interventionData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Supabase insert error:', error);
+      console.error('📋 Error details:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('✅ Insert successful:', data);
+
+    // Upload des photos si présentes
+    console.log('📸 Checking for photos in FormData...');
+
+    // Debug: Lister tous les champs du FormData
+    const allKeys: string[] = [];
+    for (const key of formData.keys()) {
+      allKeys.push(key);
+    }
+    console.log('📋 All FormData keys:', allKeys);
+    console.log('🔍 Photo keys found:', allKeys.filter(k => k.toLowerCase().includes('photo')));
+
+    const photosAvantFiles = formData.getAll('photosAvant') as File[];
+    const photosApresFiles = formData.getAll('photosApres') as File[];
+    const photoManometreFiles = formData.getAll('photoManometre') as File[];
+
+    // Photos spécifiques à "Remplissage Cuve"
+    const photosJaugesAvantFiles = formData.getAll('photosJaugesAvant') as File[];
+    const photosJaugesApresFiles = formData.getAll('photosJaugesApres') as File[];
+    const photoTicketFiles = formData.getAll('photoTicket') as File[];
+
+    console.log(`📸 Photos Avant: ${photosAvantFiles.length} fichiers`);
+    console.log(`📸 Photos Après: ${photosApresFiles.length} fichiers`);
+    console.log(`📸 Photos Manomètre: ${photoManometreFiles.length} fichiers`);
+    console.log(`📸 Photos Jauges Avant: ${photosJaugesAvantFiles.length} fichiers`);
+    console.log(`📸 Photos Jauges Après: ${photosJaugesApresFiles.length} fichiers`);
+    console.log(`📸 Photo Ticket: ${photoTicketFiles.length} fichiers`);
+
+    const photosAvantUrls: string[] = [];
+    const photosApresUrls: string[] = [];
+    const photoManometreUrls: string[] = [];
+    const photosJaugesAvantUrls: string[] = [];
+    const photosJaugesApresUrls: string[] = [];
+    const photoTicketUrls: string[] = [];
+
+    // Upload des photos AVANT
+    for (let i = 0; i < photosAvantFiles.length; i++) {
+      const photoFile = photosAvantFiles[i];
+
+      console.log(`📸 Processing photo AVANT ${i + 1}/${photosAvantFiles.length}:`, {
+        name: photoFile?.name,
+        size: photoFile?.size,
+        type: photoFile?.type
+      });
+
+      if (photoFile && photoFile.size > 0) {
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/avant-${Date.now()}-${i}.${fileExtension}`;
+
+        console.log(`⬆️ Uploading AVANT to: ${fileName}`);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('intervention-photos')
+          .upload(fileName, photoFile, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+          });
+
+        if (uploadError) {
+          console.error(`❌ Error uploading photo AVANT ${i}:`, uploadError);
+          console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('intervention-photos')
+            .getPublicUrl(fileName);
+
+          photosAvantUrls.push(publicUrl);
+          console.log(`✅ Photo AVANT ${i + 1} uploaded:`, publicUrl);
+        }
+      }
+    }
+
+    // Upload des photos APRÈS
+    for (let i = 0; i < photosApresFiles.length; i++) {
+      const photoFile = photosApresFiles[i];
+
+      console.log(`📸 Processing photo APRÈS ${i + 1}/${photosApresFiles.length}:`, {
+        name: photoFile?.name,
+        size: photoFile?.size,
+        type: photoFile?.type
+      });
+
+      if (photoFile && photoFile.size > 0) {
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/apres-${Date.now()}-${i}.${fileExtension}`;
+
+        console.log(`⬆️ Uploading APRÈS to: ${fileName}`);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('intervention-photos')
+          .upload(fileName, photoFile, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+          });
+
+        if (uploadError) {
+          console.error(`❌ Error uploading photo APRÈS ${i}:`, uploadError);
+          console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('intervention-photos')
+            .getPublicUrl(fileName);
+
+          photosApresUrls.push(publicUrl);
+          console.log(`✅ Photo APRÈS ${i + 1} uploaded:`, publicUrl);
+        }
+      }
+    }
+
+    // Upload des photos MANOMETRE (pour livraison carburant)
+    for (let i = 0; i < photoManometreFiles.length; i++) {
+      const photoFile = photoManometreFiles[i];
+
+      console.log(`📸 Processing photo MANOMETRE ${i + 1}/${photoManometreFiles.length}:`, {
+        name: photoFile?.name,
+        size: photoFile?.size,
+        type: photoFile?.type
+      });
+
+      if (photoFile && photoFile.size > 0) {
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/manometre-${Date.now()}-${i}.${fileExtension}`;
+
+        console.log(`⬆️ Uploading MANOMETRE to: ${fileName}`);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('intervention-photos')
+          .upload(fileName, photoFile, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+          });
+
+        if (uploadError) {
+          console.error(`❌ Error uploading photo MANOMETRE ${i}:`, uploadError);
+          console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('intervention-photos')
+            .getPublicUrl(fileName);
+
+          photoManometreUrls.push(publicUrl);
+          console.log(`✅ Photo MANOMETRE ${i + 1} uploaded:`, publicUrl);
+        }
+      }
+    }
+
+    // Upload des photos JAUGES AVANT (pour remplissage cuve)
+    for (let i = 0; i < photosJaugesAvantFiles.length; i++) {
+      const photoFile = photosJaugesAvantFiles[i];
+      if (photoFile && photoFile.size > 0) {
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/jauges-avant-${Date.now()}-${i}.${fileExtension}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('intervention-photos')
+          .upload(fileName, photoFile, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+          });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('intervention-photos')
+            .getPublicUrl(fileName);
+          photosJaugesAvantUrls.push(publicUrl);
+          console.log(`✅ Photo JAUGES AVANT ${i + 1} uploaded:`, publicUrl);
+        }
+      }
+    }
+
+    // Upload des photos JAUGES APRÈS (pour remplissage cuve)
+    for (let i = 0; i < photosJaugesApresFiles.length; i++) {
+      const photoFile = photosJaugesApresFiles[i];
+      if (photoFile && photoFile.size > 0) {
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/jauges-apres-${Date.now()}-${i}.${fileExtension}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('intervention-photos')
+          .upload(fileName, photoFile, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+          });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('intervention-photos')
+            .getPublicUrl(fileName);
+          photosJaugesApresUrls.push(publicUrl);
+          console.log(`✅ Photo JAUGES APRÈS ${i + 1} uploaded:`, publicUrl);
+        }
+      }
+    }
+
+    // Upload des photos TICKET (pour remplissage cuve)
+    for (let i = 0; i < photoTicketFiles.length; i++) {
+      const photoFile = photoTicketFiles[i];
+      if (photoFile && photoFile.size > 0) {
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/ticket-${Date.now()}-${i}.${fileExtension}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('intervention-photos')
+          .upload(fileName, photoFile, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+          });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('intervention-photos')
+            .getPublicUrl(fileName);
+          photoTicketUrls.push(publicUrl);
+          console.log(`✅ Photo TICKET ${i + 1} uploaded:`, publicUrl);
+        }
+      }
+    }
+
+    // Mettre à jour l'intervention avec les URLs des photos séparées
+    if (photosAvantUrls.length > 0 || photosApresUrls.length > 0 || photoManometreUrls.length > 0 ||
+        photosJaugesAvantUrls.length > 0 || photosJaugesApresUrls.length > 0 || photoTicketUrls.length > 0) {
+      const photoMetadata = {
+        photosAvant: photosAvantUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photosApres: photosApresUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photoManometre: photoManometreUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photosJaugesAvant: photosJaugesAvantUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photosJaugesApres: photosJaugesApresUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photoTicket: photoTicketUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        }))
+      };
+
+      await supabase
+        .from('interventions')
+        .update({
+          metadata: {
+            ...metadata,
+            photos: photoMetadata
+          }
+        })
+        .eq('id', data.id);
+
+      console.log(`✅ ${photosAvantUrls.length} AVANT + ${photosApresUrls.length} APRÈS + ${photoManometreUrls.length} MANOMETRE + ${photosJaugesAvantUrls.length} JAUGES AVANT + ${photosJaugesApresUrls.length} JAUGES APRÈS + ${photoTicketUrls.length} TICKET saved`);
+    }
 
     return NextResponse.json({
       success: true,
-      interventions,
-      count: interventions.length,
+      intervention: data,
+      photosAvantUploaded: photosAvantUrls.length,
+      photosApresUploaded: photosApresUrls.length,
+      photoManometreUploaded: photoManometreUrls.length,
+      photosJaugesAvantUploaded: photosJaugesAvantUrls.length,
+      photosJaugesApresUploaded: photosJaugesApresUrls.length,
+      photoTicketUploaded: photoTicketUrls.length
     });
   } catch (error) {
-    console.error('Error in GET /api/interventions:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error creating intervention:', error);
+    return NextResponse.json({
+      error: 'Erreur lors de la création de l\'intervention'
+    }, { status: 500 });
   }
 }

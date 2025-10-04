@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { Settings } from "lucide-react";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { AppearanceSection } from "@/components/settings/AppearanceSection";
+import { ExperienceSection } from "@/components/settings/ExperienceSection";
 import { NotificationsSection } from "@/components/settings/NotificationsSection";
 import { DataSection } from "@/components/settings/DataSection";
 import { AboutSection } from "@/components/settings/AboutSection";
@@ -29,6 +30,7 @@ export default function ParametresPage() {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <AccountSection />
         <AppearanceSection />
+        <ExperienceSection />
         <NotificationsSection />
         <DataSection />
         <AboutSection />
