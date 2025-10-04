@@ -216,6 +216,9 @@ export function AddVehicleDialog({
                 onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
                 placeholder="AA-123-BB"
                 className="uppercase"
+                autoComplete="off"
+                data-form-type="other"
+                data-1p-ignore
               />
               {checking && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -261,6 +264,8 @@ export function AddVehicleDialog({
               value={make}
               onChange={(e) => setMake(e.target.value)}
               placeholder="Renault, Volvo, etc."
+              autoComplete="off"
+              data-1p-ignore
             />
           </div>
 
@@ -271,6 +276,8 @@ export function AddVehicleDialog({
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="FH16, T-Series, etc."
+              autoComplete="off"
+              data-1p-ignore
             />
           </div>
 
@@ -293,6 +300,8 @@ export function AddVehicleDialog({
                 value={fuelType}
                 onChange={(e) => setFuelType(e.target.value)}
                 placeholder="Diesel"
+                autoComplete="off"
+                data-1p-ignore
               />
             </div>
 

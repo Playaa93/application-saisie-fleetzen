@@ -131,6 +131,8 @@ export default function SearchableCombobox({
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Rechercher..."
                   className="w-full pl-10 pr-3 py-2 border border-input bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoComplete="off"
+                  data-1p-ignore
                 />
               </div>
             </div>

@@ -45,6 +45,8 @@ export function VehicleSelector({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10"
+          autoComplete="off"
+          data-1p-ignore
         />
       </div>
 
