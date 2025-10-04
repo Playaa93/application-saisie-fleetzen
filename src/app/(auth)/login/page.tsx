@@ -88,37 +88,31 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-primary/5 via-primary/10 to-background relative overflow-hidden">
-      {/* Decorative background pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-
-      <Card className="w-full max-w-md relative z-10 shadow-2xl border-primary/20 backdrop-blur-sm bg-card/95">
-        <CardHeader className="space-y-4 text-center pb-6">
-          {/* Logo FleetZen avec animation */}
-          <div className="flex justify-center">
-            <div className="relative animate-in fade-in zoom-in duration-500">
-              <Image
-                src="/logo-fleetzen.svg"
-                alt="FleetZen Logo"
-                width={120}
-                height={120}
-                className="drop-shadow-lg"
-                priority
-              />
-            </div>
+    <div className="flex-1 flex items-center justify-center p-4 min-h-screen bg-background">
+      <Card className="w-full max-w-md shadow-lg border">
+        <CardHeader className="space-y-6 text-center pb-8">
+          {/* Logo FleetZen */}
+          <div className="flex justify-center animate-in fade-in duration-300">
+            <Image
+              src="/logo-fleetzen.svg"
+              alt="FleetZen"
+              width={188}
+              height={188}
+              priority
+            />
           </div>
 
-          <div className="space-y-2 animate-in slide-in-from-bottom-4 duration-700">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Bienvenue sur FleetZen
+          <div className="space-y-2 animate-in fade-in duration-300 delay-75">
+            <CardTitle className="text-2xl font-bold text-foreground">
+              Votre espace agent
             </CardTitle>
-            <CardDescription className="text-base">
-              Connectez-vous à votre espace agent
+            <CardDescription className="text-base text-muted-foreground">
+              Connectez-vous pour gérer vos interventions terrain
             </CardDescription>
           </div>
         </CardHeader>
 
-        <CardContent className="animate-in slide-in-from-bottom-6 duration-1000">
+        <CardContent className="animate-in fade-in duration-300 delay-150">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
@@ -167,7 +161,7 @@ export default function LoginPage(): JSX.Element {
 
             <Button
               type="submit"
-              className="w-full h-11 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full h-11 text-base font-semibold transition-all duration-200"
               size="lg"
               disabled={isLoading}
             >
@@ -199,8 +193,8 @@ export default function LoginPage(): JSX.Element {
 
       {/* Footer branding */}
       <div className="absolute bottom-4 left-0 right-0 text-center">
-        <p className="text-xs text-muted-foreground">
-          FleetZen © {new Date().getFullYear()} - Gestion d'interventions terrain
+        <p className="text-xs text-muted-foreground/60">
+          FleetZen © {new Date().getFullYear()}
         </p>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 
 // Explicit runtime configuration for Vercel
 export const runtime = 'nodejs';
@@ -8,18 +8,6 @@ export const revalidate = 0;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log('=== START POST /api/auth/login ===');
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase configuration');
-    return NextResponse.json({
-      success: false,
-      error: 'Configuration Supabase manquante',
-      errorCode: 'CONFIGURATION_MISSING',
-    }, { status: 500 });
-  }
 
   let body: { email?: string; password?: string } | null = null;
 
@@ -48,7 +36,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   console.log(`Attempting login for: ${email}`);
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use SSR client (same as DAL) to ensure cookie compatibility
+    const supabase = await createClient();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
@@ -68,51 +57,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 401 });
     }
 
-    console.log('Login successful');
+    console.log('Login successful:', data.user.email);
 
-    const session = {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresIn: data.session.expires_in ?? 3600,
-      expiresAt: data.session.expires_at,
-      tokenType: data.session.token_type ?? 'bearer',
-    };
-
-    const user = {
-      id: data.user.id,
-      email: data.user.email,
-      role: data.user.role,
-    };
-
-    const response = NextResponse.json({
+    // Supabase SSR client handles cookies automatically
+    // Return minimal user data for client
+    return NextResponse.json({
       success: true,
       data: {
-        user,
-        session,
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.role,
+        },
+        session: {
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+          expiresIn: data.session.expires_in ?? 3600,
+          expiresAt: data.session.expires_at,
+          tokenType: data.session.token_type ?? 'bearer',
+        },
       },
     }, {
       headers: {
         'Cache-Control': 'no-store',
       },
     });
-
-    response.cookies.set('sb-access-token', session.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: session.expiresIn,
-    });
-
-    response.cookies.set('sb-refresh-token', session.refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    return response;
   } catch (error) {
     console.error('=== ERROR in POST /api/auth/login ===', error);
     const message = error instanceof Error ? error.message : 'Unknown error';

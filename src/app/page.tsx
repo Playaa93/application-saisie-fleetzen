@@ -35,18 +35,18 @@ export default async function HomePage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
-          <Link href="/interventions/history">
-            <Button variant="secondary" className="w-full h-auto flex-col gap-2 py-4">
+          <Button variant="secondary" className="w-full h-auto flex-col gap-2 py-4" asChild>
+            <Link href="/interventions/history">
               <History className="h-6 w-6" />
               <span>Historique</span>
-            </Button>
-          </Link>
-          <Link href="/nouvelle-intervention">
-            <Button className="w-full h-auto flex-col gap-2 py-4">
+            </Link>
+          </Button>
+          <Button className="w-full h-auto flex-col gap-2 py-4" asChild>
+            <Link href="/nouvelle-intervention">
               <Plus className="h-6 w-6" />
               <span>Nouvelle intervention</span>
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {/* À faire maintenant - receives pre-authenticated data */}

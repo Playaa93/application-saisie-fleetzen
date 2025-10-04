@@ -70,10 +70,6 @@ export function DraftsListHome() {
     return 'À l\'instant';
   };
 
-  const handleDraftClick = () => {
-    router.push('/nouvelle-intervention');
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -112,7 +108,7 @@ export function DraftsListHome() {
           {drafts.map((draft) => (
             <button
               key={draft.id}
-              onClick={handleDraftClick}
+              onClick={() => router.push('/nouvelle-intervention')}
               className="w-full text-left p-3 rounded-lg border border-border hover:bg-accent hover:border-primary/50 transition-all"
             >
               <div className="flex items-start justify-between gap-2">

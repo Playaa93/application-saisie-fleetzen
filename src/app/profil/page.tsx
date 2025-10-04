@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { User, Mail, Phone, Shield, Calendar, Settings, LogOut } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,10 +36,12 @@ export default async function ProfilPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => redirect('/parametres')}
             title="Paramètres"
+            asChild
           >
-            <Settings className="h-5 w-5" />
+            <Link href="/parametres">
+              <Settings className="h-5 w-5" />
+            </Link>
           </Button>
           <LogoutButton />
         </div>

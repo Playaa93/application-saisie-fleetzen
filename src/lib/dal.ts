@@ -27,10 +27,14 @@ export const verifySession = cache(async () => {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const { data: { user }, error } = await supabase.auth.getUser();
 
+  console.log('🔍 DAL verifySession:', { hasUser: !!user, error: error?.message });
+
   if (error || !user) {
+    console.log('❌ No user found, redirecting to /login');
     redirect('/login');
   }
 
+  console.log('✅ User authenticated:', user.email);
   return { user, supabase };
 });
 
@@ -57,7 +61,7 @@ export async function getDashboardStats() {
       scheduled_at,
       intervention_type:intervention_types(name),
       client:clients(name),
-      vehicle:vehicles(registration_number)
+      vehicle:vehicles(license_plate)
     `)
     .eq('agent_id', user.id)
     .gte('created_at', today.toISOString())
@@ -81,7 +85,7 @@ export async function getDashboardStats() {
     status: i.status,
     scheduledAt: i.scheduled_at,
     client: i.client?.name || 'Inconnu',
-    vehicule: i.vehicle?.registration_number || 'Inconnu'
+    vehicule: i.vehicle?.license_plate || 'Inconnu'
   })) || [];
 
   return {
@@ -233,7 +237,7 @@ export async function getInterventions(filters?: {
       *,
       intervention_type:intervention_types(name),
       client:clients(name),
-      vehicle:vehicles(registration_number, brand, model)
+      vehicle:vehicles(license_plate, brand, model)
     `)
     .eq('agent_id', user.id)
     .order('created_at', { ascending: false });
