@@ -265,7 +265,7 @@ export default function NouvelleInterventionPage() {
       photosApresLength: finalData.photosApres?.length
     });
 
-    const completeData = {
+    const completeData: Record<string, any> = {
       ...finalData, // ← finalData en premier pour ne pas être écrasé
       ...formData,  // ← formData en second (ne devrait pas contenir photos)
       type: typePrestation === 'lavage' ? 'Lavage Véhicule' :
@@ -279,6 +279,22 @@ export default function NouvelleInterventionPage() {
         gpsCapturedAt: new Date(gpsData.timestamp).toISOString(),
       }),
     };
+
+    if (Array.isArray(completeData.photoCompteurAvant)) {
+      completeData.photosAvant = [
+        ...(Array.isArray(completeData.photosAvant) ? completeData.photosAvant : []),
+        ...completeData.photoCompteurAvant,
+      ];
+      delete completeData.photoCompteurAvant;
+    }
+
+    if (Array.isArray(completeData.photoCompteurApres)) {
+      completeData.photosApres = [
+        ...(Array.isArray(completeData.photosApres) ? completeData.photosApres : []),
+        ...completeData.photoCompteurApres,
+      ];
+      delete completeData.photoCompteurApres;
+    }
 
     // Debug: vérifier les photos dans completeData
     console.log('📸 Photos in completeData:', {
@@ -297,30 +313,32 @@ export default function NouvelleInterventionPage() {
       });
 
       const formDataToSend = new FormData();
-      Object.keys(completeData).forEach(key => {
-        const value = completeData[key];
 
-        // Gérer les photos AVANT
+      for (const [key, value] of Object.entries(completeData)) {
         if (key === 'photosAvant' && Array.isArray(value)) {
-          console.log(`📸 Adding ${value.length} photos AVANT to FormData`);
-          value.forEach((photo: File) => {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos AVANT to FormData`);
+          files.forEach((photo) => {
             console.log(`  - Photo AVANT:`, photo?.name, photo?.size);
             formDataToSend.append('photosAvant', photo);
           });
+          continue;
         }
-        // Gérer les photos APRÈS
-        else if (key === 'photosApres' && Array.isArray(value)) {
-          console.log(`📸 Adding ${value.length} photos APRÈS to FormData`);
-          value.forEach((photo: File) => {
+
+        if (key === 'photosApres' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos APRÈS to FormData`);
+          files.forEach((photo) => {
             console.log(`  - Photo APRÈS:`, photo?.name, photo?.size);
             formDataToSend.append('photosApres', photo);
           });
+          continue;
         }
-        // Gérer les photos MANOMETRE (pour livraison carburant)
-        else if (key === 'photoManometre' && Array.isArray(value)) {
-          console.log(`📸 Adding ${value.length} photos MANOMETRE to FormData`);
-          value.forEach((photo: File) => {
-            // Vérifier que c'est bien un File valide
+
+        if (key === 'photoManometre' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos MANOMETRE to FormData`);
+          files.forEach((photo) => {
             if (photo instanceof File && photo.size > 0) {
               console.log(`  - Photo MANOMETRE:`, photo.name, photo.size);
               formDataToSend.append('photoManometre', photo);
@@ -328,11 +346,13 @@ export default function NouvelleInterventionPage() {
               console.warn(`⚠️ Invalid photo MANOMETRE:`, photo);
             }
           });
+          continue;
         }
-        // Gérer les photos JAUGES AVANT (Remplissage Cuve)
-        else if (key === 'photosJaugesAvant' && Array.isArray(value)) {
-          console.log(`📸 Adding ${value.length} photos JAUGES AVANT to FormData`);
-          value.forEach((photo: File) => {
+
+        if (key === 'photosJaugesAvant' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos JAUGES AVANT to FormData`);
+          files.forEach((photo) => {
             if (photo instanceof File && photo.size > 0) {
               console.log(`  - Photo JAUGES AVANT:`, photo.name, photo.size);
               formDataToSend.append('photosJaugesAvant', photo);
@@ -340,11 +360,13 @@ export default function NouvelleInterventionPage() {
               console.warn(`⚠️ Invalid photo JAUGES AVANT:`, photo);
             }
           });
+          continue;
         }
-        // Gérer les photos JAUGES APRÈS (Remplissage Cuve)
-        else if (key === 'photosJaugesApres' && Array.isArray(value)) {
-          console.log(`📸 Adding ${value.length} photos JAUGES APRÈS to FormData`);
-          value.forEach((photo: File) => {
+
+        if (key === 'photosJaugesApres' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos JAUGES APRÈS to FormData`);
+          files.forEach((photo) => {
             if (photo instanceof File && photo.size > 0) {
               console.log(`  - Photo JAUGES APRÈS:`, photo.name, photo.size);
               formDataToSend.append('photosJaugesApres', photo);
@@ -352,11 +374,13 @@ export default function NouvelleInterventionPage() {
               console.warn(`⚠️ Invalid photo JAUGES APRÈS:`, photo);
             }
           });
+          continue;
         }
-        // Gérer la photo TICKET (Remplissage Cuve)
-        else if (key === 'photoTicket' && Array.isArray(value)) {
-          console.log(`📸 Adding ${value.length} photo(s) TICKET to FormData`);
-          value.forEach((photo: File) => {
+
+        if (key === 'photoTicket' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photo(s) TICKET to FormData`);
+          files.forEach((photo) => {
             if (photo instanceof File && photo.size > 0) {
               console.log(`  - Photo TICKET:`, photo.name, photo.size);
               formDataToSend.append('photoTicket', photo);
@@ -364,22 +388,25 @@ export default function NouvelleInterventionPage() {
               console.warn(`⚠️ Invalid photo TICKET:`, photo);
             }
           });
+          continue;
         }
-        // Gérer les anciennes photos (compatibilité)
-        else if (key === 'photos' && Array.isArray(value)) {
-          value.forEach((photo: File, index: number) => {
+
+        if (key === 'photos' && Array.isArray(value)) {
+          const files = value as File[];
+          files.forEach((photo, index) => {
             formDataToSend.append(`photo${index}`, photo);
           });
+          continue;
         }
-        else if (value !== null && value !== undefined) {
-          // Sérialiser les objets en JSON (ex: carburant)
+
+        if (value !== null && value !== undefined) {
           if (typeof value === 'object' && !Array.isArray(value)) {
             formDataToSend.append(key, JSON.stringify(value));
           } else {
-            formDataToSend.append(key, value);
+            formDataToSend.append(key, value as any);
           }
         }
-      });
+      }
 
       // Get token for Authorization header (more reliable than cookies on mobile)
       const token = typeof window !== 'undefined' ? localStorage.getItem('sb-access-token') : null;

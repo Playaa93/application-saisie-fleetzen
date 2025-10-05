@@ -287,8 +287,14 @@ export async function POST(request: NextRequest) {
     logger.info({ interventionId: data.id }, 'Intervention insert successful');
 
     // Upload des photos si présentes
-    const photosAvantFiles = formData.getAll('photosAvant') as File[];
-    const photosApresFiles = formData.getAll('photosApres') as File[];
+    const photosAvantFiles = [
+      ...(formData.getAll('photosAvant') as File[]),
+      ...(formData.getAll('photoCompteurAvant') as File[]),
+    ];
+    const photosApresFiles = [
+      ...(formData.getAll('photosApres') as File[]),
+      ...(formData.getAll('photoCompteurApres') as File[]),
+    ];
     const photoManometreFiles = formData.getAll('photoManometre') as File[];
 
     // Photos spécifiques à "Remplissage Cuve"
