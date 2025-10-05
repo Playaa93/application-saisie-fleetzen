@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import logger, { logError } from '@/lib/logger';
+import { interventionQuerySchema } from '@/lib/validations/api';
+import { ZodError } from 'zod';
 
 // Service role client for admin operations (storage upload)
 import { createClient as createServiceClient } from '@supabase/supabase-js';
@@ -8,9 +10,30 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    // Get agent_id from query params (optional filter)
+    // Validate query parameters with Zod
     const { searchParams } = new URL(request.url);
+    const queryParams = Object.fromEntries(searchParams.entries());
+
+    let validatedQuery;
+    try {
+      validatedQuery = interventionQuerySchema.parse(queryParams);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        logger.warn({ errors: error.errors }, 'GET /api/interventions - Validation failed');
+        return NextResponse.json({
+          success: false,
+          error: 'Paramètres de requête invalides',
+          errorCode: 'VALIDATION_ERROR',
+          details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+        }, { status: 400 });
+      }
+      throw error;
+    }
+
+    // Legacy support for 'my' parameter (not in schema)
     const agentId = searchParams.get('agent_id');
     const myInterventions = searchParams.get('my') === 'true';
 
@@ -50,7 +73,12 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    logger.debug({ count: data.length, filtered: { agentId, myInterventions } }, 'Interventions fetched');
+    const duration = Date.now() - startTime;
+    logger.info({
+      count: data.length,
+      filtered: { agentId, myInterventions },
+      duration
+    }, 'Interventions fetched');
 
     // Mapper les champs pour compatibilité frontend
     const interventions = data.map(intervention => ({
@@ -71,12 +99,15 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ interventions });
   } catch (error) {
-    logError(error, { context: 'GET /api/interventions - general error' });
+    const duration = Date.now() - startTime;
+    logError(error, { context: 'GET /api/interventions - general error', duration });
     return NextResponse.json({ error: 'Erreur de récupération' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
     // Create Supabase SSR client for auth
     const supabase = await createClient();
@@ -384,6 +415,16 @@ export async function POST(request: NextRequest) {
       }, 'Photos uploaded and metadata updated');
     }
 
+    const duration = Date.now() - startTime;
+    const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
+      photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length;
+
+    logger.info({
+      interventionId: data.id,
+      totalPhotos,
+      duration
+    }, 'Intervention created successfully');
+
     return NextResponse.json({
       success: true,
       intervention: data,
@@ -395,7 +436,8 @@ export async function POST(request: NextRequest) {
       photoTicketUploaded: photoTicketUrls.length
     });
   } catch (error) {
-    logError(error, { context: 'POST /api/interventions - general error' });
+    const duration = Date.now() - startTime;
+    logError(error, { context: 'POST /api/interventions - general error', duration });
     return NextResponse.json({
       error: 'Erreur lors de la création de l\'intervention'
     }, { status: 500 });

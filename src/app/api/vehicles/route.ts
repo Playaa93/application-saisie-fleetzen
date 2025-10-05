@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import logger, { logError } from '@/lib/logger';
+import { vehicleQuerySchema, vehicleCreateSchema } from '@/lib/validations/api';
+import { ZodError } from 'zod';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -10,19 +12,30 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 // Fetch vehicles filtered by client, site, and category
 // ============================================================================
 export async function GET(request: Request) {
+  const startTime = Date.now();
+
   try {
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('clientId');
-    const site = searchParams.get('site');
-    const category = searchParams.get('category');
+    const queryParams = Object.fromEntries(searchParams.entries());
 
-    if (!clientId) {
-      logger.warn({ site, category }, 'GET /api/vehicles - missing clientId');
-      return NextResponse.json(
-        { success: false, error: 'clientId parameter is required' },
-        { status: 400 }
-      );
+    // Validate query params with Zod
+    let validatedQuery;
+    try {
+      validatedQuery = vehicleQuerySchema.parse(queryParams);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        logger.warn({ errors: error.errors }, 'GET /api/vehicles - Validation failed');
+        return NextResponse.json({
+          success: false,
+          error: 'Paramètres de requête invalides',
+          errorCode: 'VALIDATION_ERROR',
+          details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+        }, { status: 400 });
+      }
+      throw error;
     }
+
+    const { clientId, site, category } = validatedQuery;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -63,11 +76,13 @@ export async function GET(request: Request) {
       );
     }
 
-    logger.debug({
+    const duration = Date.now() - startTime;
+    logger.info({
       clientId,
       site,
       category,
-      count: vehicles?.length || 0
+      count: vehicles?.length || 0,
+      duration
     }, 'Vehicles fetched successfully');
 
     return NextResponse.json({
@@ -76,7 +91,8 @@ export async function GET(request: Request) {
       count: vehicles?.length || 0,
     });
   } catch (error) {
-    logError(error, { context: 'GET /api/vehicles - unhandled exception' });
+    const duration = Date.now() - startTime;
+    logError(error, { context: 'GET /api/vehicles - unhandled exception', duration });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -89,40 +105,50 @@ export async function GET(request: Request) {
 // Create a new vehicle
 // ============================================================================
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const {
-      licensePlate,
-      clientId,
-      site,
-      category,
-      make,
-      model,
-      year,
-      fuelType,
-      tankCapacity
-    } = body;
+  const startTime = Date.now();
 
-    if (!licensePlate || !clientId || !site || !category) {
-      logger.warn({ hasLicensePlate: !!licensePlate, hasClientId: !!clientId, hasSite: !!site, hasCategory: !!category }, 'POST /api/vehicles - missing required fields');
-      return NextResponse.json(
-        { success: false, error: 'licensePlate, clientId, site, and category are required' },
-        { status: 400 }
-      );
+  try {
+    const rawBody = await request.json();
+
+    // Validate body with Zod
+    let validatedBody;
+    try {
+      validatedBody = vehicleCreateSchema.parse({
+        client_id: rawBody.clientId,
+        registration_number: rawBody.licensePlate,
+        brand: rawBody.make,
+        model: rawBody.model,
+        year: rawBody.year,
+        work_site: rawBody.site,
+        vehicle_category: rawBody.category,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        logger.warn({ errors: error.errors }, 'POST /api/vehicles - Validation failed');
+        return NextResponse.json({
+          success: false,
+          error: 'Données invalides',
+          errorCode: 'VALIDATION_ERROR',
+          details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+        }, { status: 400 });
+      }
+      throw error;
     }
+
+    const { fuelType, tankCapacity } = rawBody; // Legacy fields not in schema yet
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data: newVehicle, error } = await supabase
       .from('vehicles')
       .insert({
-        license_plate: licensePlate,
-        client_id: clientId,
-        work_site: site,
-        vehicle_category: category.toLowerCase(),
-        make: make || null,
-        model: model || null,
-        year: year || null,
+        license_plate: validatedBody.registration_number,
+        client_id: validatedBody.client_id,
+        work_site: validatedBody.work_site,
+        vehicle_category: validatedBody.vehicle_category?.toLowerCase(),
+        make: validatedBody.brand || null,
+        model: validatedBody.model || null,
+        year: validatedBody.year || null,
         fuel_type: fuelType || null,
         tank_capacity: tankCapacity || null,
         is_active: true,
@@ -131,21 +157,32 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      logError(error, { context: 'POST /api/vehicles', licensePlate, clientId, site });
+      logError(error, {
+        context: 'POST /api/vehicles',
+        licensePlate: validatedBody.registration_number,
+        clientId: validatedBody.client_id
+      });
       return NextResponse.json(
         { success: false, error: 'Failed to create vehicle' },
         { status: 500 }
       );
     }
 
-    logger.info({ vehicleId: newVehicle.id, licensePlate, site }, 'Vehicle created successfully');
+    const duration = Date.now() - startTime;
+    logger.info({
+      vehicleId: newVehicle.id,
+      licensePlate: validatedBody.registration_number,
+      site: validatedBody.work_site,
+      duration
+    }, 'Vehicle created successfully');
 
     return NextResponse.json({
       success: true,
       vehicle: newVehicle,
     });
   } catch (error) {
-    logError(error, { context: 'POST /api/vehicles - unhandled exception' });
+    const duration = Date.now() - startTime;
+    logError(error, { context: 'POST /api/vehicles - unhandled exception', duration });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
