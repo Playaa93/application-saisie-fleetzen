@@ -23,7 +23,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name \!== CACHE_NAME && name \!== RUNTIME_CACHE)
+          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
           .map((name) => caches.delete(name))
       );
     })
@@ -34,7 +34,7 @@ self.addEventListener('activate', (event) => {
 // Network-first strategy with cache fallback
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
-  if (event.request.method \!== 'GET') return;
+  if (event.request.method !== 'GET') return;
 
   // Skip chrome extensions
   if (event.request.url.startsWith('chrome-extension://')) return;
