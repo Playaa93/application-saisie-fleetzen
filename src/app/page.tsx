@@ -42,11 +42,8 @@ export default async function HomePage() {
     ? `${agent.first_name} ${agent.last_name}`.trim()
     : user.email?.split('@')[0] || 'Agent';
 
-  // TEMPORAIRE: Désactiver getDashboardStats() pour debug RLS
-  const stats = { total: 0, completed: 0, completionRate: 0 };
-  const tasksToday: any[] = [];
-
-  // const { stats, tasksToday, agentName } = await getDashboardStats();
+  // Fetch dashboard stats with RLS verification
+  const { stats, tasksToday } = await getDashboardStats();
 
   return (
     <>
