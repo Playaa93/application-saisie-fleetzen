@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -27,6 +29,25 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isAdminView, setIsAdminView] = useState(true);
+
+  useEffect(() => {
+    setIsAdminView(true);
+  }, [pathname]);
+
+  const handleModeChange = (checked: boolean) => {
+    setIsAdminView(checked);
+
+    if (checked) {
+      if (!pathname.startsWith('/admin')) {
+        router.push('/admin');
+      }
+      return;
+    }
+
+    router.push('/');
+  };
 
   return (
     <aside className="hidden md:flex w-64 border-r border-border flex-col bg-card">
@@ -34,6 +55,20 @@ export function AdminSidebar() {
       <div className="p-6 border-b border-border">
         <h1 className="text-2xl font-bold">FleetZen</h1>
         <p className="text-sm text-muted-foreground mt-1">Portail Admin</p>
+
+        <div className="mt-4 rounded-lg border border-border bg-muted/40 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Mode admin</p>
+              <p className="text-xs text-muted-foreground">Basculer vers l'application agent</p>
+            </div>
+            <Switch
+              checked={isAdminView}
+              onCheckedChange={handleModeChange}
+              aria-label="Basculer vers le mode agent"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}

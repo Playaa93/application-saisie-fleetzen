@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { User, Mail, Phone, Shield, Calendar, Settings, LogOut } from 'lucide-react';
+import { User, Mail, Phone, Shield, Calendar, Settings, LogOut, ArrowLeftRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ export default async function ProfilPage() {
   // ✅ Data fetched server-side
   const { profile, stats } = await getAgentProfile();
   const chartData = await getAgentActivityChart();
+  const isAdmin = profile.role === 'admin' || profile.role === 'super_admin';
 
   const roleLabels: Record<string, string> = {
     admin: 'Administrateur',
@@ -33,6 +34,19 @@ export default async function ProfilPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Mon Profil</h1>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2"
+              asChild
+            >
+              <Link href="/admin">
+                <ArrowLeftRight className="h-4 w-4" />
+                Mode admin
+              </Link>
+            </Button>
+          )}
           <Button
             variant="outline"
             size="icon"
