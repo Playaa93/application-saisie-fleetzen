@@ -8,6 +8,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+images: {
+    domains: ['qxbvlitgxzhnktrwftiv.supabase.co'],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

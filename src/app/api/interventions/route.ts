@@ -330,6 +330,14 @@ export async function POST(request: NextRequest) {
       const fileExtension = photoFile.name.split('.').pop() || 'jpg';
       const fileName = `${data.id}/${type}-${Date.now()}-${index}.${fileExtension}`;
 
+      logger.debug({
+        type,
+        index,
+        size: photoFile.size,
+        name: photoFile.name || 'unnamed',
+        contentType: photoFile.type
+      }, 'Uploading intervention photo');
+
       const { error: uploadError } = await storageClient.storage
         .from('intervention-photos')
         .upload(fileName, photoFile, {
