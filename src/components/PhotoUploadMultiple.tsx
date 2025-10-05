@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import imageCompression from 'browser-image-compression';
 
 interface PhotoUploadMultipleProps {
   label: string;
@@ -43,7 +44,7 @@ export default function PhotoUploadMultiple({
     }
   }, [value.length]); // Dépendance sur la longueur, pas le tableau entier
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
 
     // Validation
@@ -58,26 +59,62 @@ export default function PhotoUploadMultiple({
     const validFiles: File[] = [];
     const newPreviews: string[] = [];
 
-    selectedFiles.forEach(file => {
-      // Check file size
-      if (file.size > maxSizeMB * 1024 * 1024) {
-        toast.error('Fichier trop volumineux', {
-          description: `${file.name} dépasse ${maxSizeMB}MB`,
-          duration: 2500
-        });
-        return;
+    // Options de compression optimisées pour PWA mobile
+    const compressionOptions = {
+      maxSizeMB: 1, // Cible 1MB max après compression
+      maxWidthOrHeight: 1920, // Max 1920px (Full HD)
+      useWebWorker: true, // Utiliser Web Worker pour ne pas bloquer UI
+      fileType: 'image/jpeg', // Force JPEG (meilleure compression que PNG)
+      initialQuality: 0.85, // Qualité initiale 85% (bon compromis)
+    };
+
+    toast.loading('Compression des photos...', { id: 'compress' });
+
+    try {
+      for (const file of selectedFiles) {
+        // Check file size avant compression
+        if (file.size > maxSizeMB * 1024 * 1024) {
+          toast.error('Fichier trop volumineux', {
+            description: `${file.name} dépasse ${maxSizeMB}MB avant compression`,
+            duration: 2500
+          });
+          continue;
+        }
+
+        // Compression de l'image
+        const compressedFile = await imageCompression(file, compressionOptions);
+
+        // Renommer le fichier compressé pour garder le nom original
+        const renamedFile = new File(
+          [compressedFile],
+          file.name.replace(/\.[^/.]+$/, '.jpg'), // Force extension .jpg
+          { type: 'image/jpeg' }
+        );
+
+        validFiles.push(renamedFile);
+        newPreviews.push(URL.createObjectURL(renamedFile));
       }
 
-      validFiles.push(file);
-      newPreviews.push(URL.createObjectURL(file));
-    });
+      const updatedFiles = [...files, ...validFiles];
+      const updatedPreviews = [...previews, ...newPreviews];
 
-    const updatedFiles = [...files, ...validFiles];
-    const updatedPreviews = [...previews, ...newPreviews];
+      setFiles(updatedFiles);
+      setPreviews(updatedPreviews);
+      onChange(updatedFiles);
 
-    setFiles(updatedFiles);
-    setPreviews(updatedPreviews);
-    onChange(updatedFiles);
+      toast.success('Photos compressées', {
+        id: 'compress',
+        description: `${validFiles.length} photo(s) prête(s)`,
+        duration: 1500
+      });
+    } catch (error) {
+      console.error('Compression error:', error);
+      toast.error('Erreur de compression', {
+        id: 'compress',
+        description: 'Impossible de compresser les photos',
+        duration: 2500
+      });
+    }
   };
 
   const removePhoto = (index: number) => {

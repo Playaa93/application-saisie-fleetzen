@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { toast } from 'sonner';
+import imageCompression from 'browser-image-compression';
 
 interface PhotoUploadProps {
   onChange: (files: File[]) => void;
@@ -11,20 +13,63 @@ interface PhotoUploadProps {
 export default function PhotoUpload({ onChange, maxPhotos = 2 }: PhotoUploadProps) {
   const [previews, setPreviews] = useState<string[]>([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
     if (files.length > maxPhotos) {
-      alert(`Maximum ${maxPhotos} photos autorisées`);
+      toast.error(`Maximum ${maxPhotos} photos`, {
+        description: 'Vous avez atteint la limite',
+        duration: 2000
+      });
       return;
     }
 
-    // Créer les previews
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    setPreviews(newPreviews);
+    // Options de compression optimisées pour PWA mobile
+    const compressionOptions = {
+      maxSizeMB: 1, // Cible 1MB max après compression
+      maxWidthOrHeight: 1920, // Max 1920px (Full HD)
+      useWebWorker: true, // Utiliser Web Worker pour ne pas bloquer UI
+      fileType: 'image/jpeg', // Force JPEG (meilleure compression que PNG)
+      initialQuality: 0.85, // Qualité initiale 85% (bon compromis)
+    };
 
-    // Envoyer les fichiers au parent
-    onChange(files);
+    toast.loading('Compression des photos...', { id: 'compress' });
+
+    try {
+      const compressedFiles: File[] = [];
+      const newPreviews: string[] = [];
+
+      for (const file of files) {
+        // Compression de l'image
+        const compressedFile = await imageCompression(file, compressionOptions);
+
+        // Renommer le fichier compressé pour garder le nom original
+        const renamedFile = new File(
+          [compressedFile],
+          file.name.replace(/\.[^/.]+$/, '.jpg'), // Force extension .jpg
+          { type: 'image/jpeg' }
+        );
+
+        compressedFiles.push(renamedFile);
+        newPreviews.push(URL.createObjectURL(renamedFile));
+      }
+
+      setPreviews(newPreviews);
+      onChange(compressedFiles);
+
+      toast.success('Photos compressées', {
+        id: 'compress',
+        description: `${compressedFiles.length} photo(s) prête(s)`,
+        duration: 1500
+      });
+    } catch (error) {
+      console.error('Compression error:', error);
+      toast.error('Erreur de compression', {
+        id: 'compress',
+        description: 'Impossible de compresser les photos',
+        duration: 2500
+      });
+    }
   };
 
   return (
