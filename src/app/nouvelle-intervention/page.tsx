@@ -41,6 +41,7 @@ export default function NouvelleInterventionPage() {
   const [gpsData, setGpsData] = useState<GeolocationData | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Double confirmation for delete
+  const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null); // Store timeout ID
 
   // Determine if there are unsaved changes
   const hasUnsavedChanges = typePrestation !== null && Object.keys(formData).length > 0;
@@ -470,16 +471,27 @@ export default function NouvelleInterventionPage() {
           action: {
             label: '➕ Nouvelle similaire',
             onClick: () => {
-              // Context already saved line 455 - just navigate
-              router.push('/nouvelle-intervention');
+              // Cancel auto-redirect
+              if (redirectTimer) {
+                clearTimeout(redirectTimer);
+                setRedirectTimer(null);
+              }
+
+              // Reset form for new intervention (context already in localStorage)
+              setIsSubmitting(false);
+              setShowDraftsList(false);
+
+              // Force page reload to trigger context load
+              window.location.href = '/nouvelle-intervention';
             }
           },
-          description: 'Retour à l\'accueil dans 3s...',
+          description: 'Retour automatique dans 3s...',
           duration: 3000
         });
 
-        // Delayed redirect to allow time to click "Nouvelle similaire"
-        setTimeout(() => router.push('/'), 3000);
+        // Store timeout ID so it can be cancelled
+        const timer = setTimeout(() => router.push('/'), 3000);
+        setRedirectTimer(timer);
       } else {
         const errorMessage = responseData?.error || `Erreur ${response.status}`;
 

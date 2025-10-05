@@ -1,144 +1,115 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Clock, MapPin, Car, Building2, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RotateCcw, ArrowRight } from "lucide-react";
 
-interface LastInterventionCardProps {
-  intervention: {
-    id: string;
-    type: string;
-    createdAt: string;
-    siteTravail: string | null;
-    client: {
-      id: string;
-      name: string;
-    } | null;
-    vehicle: {
-      id: string;
-      license_plate: string;
-      brand: string;
-      model: string;
-    } | null;
-  } | null;
+interface SavedContext {
+  typePrestation: string;
+  clientId?: string;
+  client?: { id: string; name: string } | null;
+  siteTravail?: string | null;
+  vehicleId?: string;
+  timestamp: number;
+  expiresAt: number;
 }
 
 /**
  * LastInterventionCard - Client Component
  *
- * Displays the last completed intervention with "Resume" button.
- * Stores context in localStorage for Step1TypePrestation auto-fill.
+ * Displays a toggle to resume last intervention from localStorage context.
+ * Similar pattern to DraftsListHome - only shows if context exists and is valid.
+ * No server-side data fetching needed.
  *
- * @see src/lib/dal.ts - Data fetched server-side via getLastCompletedIntervention()
+ * @see src/app/nouvelle-intervention/page.tsx (line 455) - Context saved after submission
+ * @see src/components/interventions/Step1TypePrestation.tsx (line 27) - Context loaded
  */
-export function LastInterventionCard({ intervention }: LastInterventionCardProps) {
+export function LastInterventionCard() {
   const router = useRouter();
+  const [context, setContext] = useState<SavedContext | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!intervention) {
-    return null;
-  }
+  useEffect(() => {
+    loadContext();
+  }, []);
 
-  // Format date
-  const formattedDate = new Date(intervention.createdAt).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  // Map intervention type to typePrestation
-  const getTypePrestation = (type: string) => {
-    if (type.toLowerCase().includes('lavage')) return 'lavage';
-    if (type.toLowerCase().includes('livraison')) return 'carburant-livraison';
-    if (type.toLowerCase().includes('cuve')) return 'carburant-cuve';
-    return 'lavage'; // Default
-  };
-
-  const handleResume = () => {
+  const loadContext = () => {
     try {
-      // Save context for next intervention (8 hours expiry)
-      const context = {
-        typePrestation: getTypePrestation(intervention.type),
-        clientId: intervention.client?.id,
-        client: intervention.client,
-        siteTravail: intervention.siteTravail,
-        vehicleId: intervention.vehicle?.id,
-        timestamp: Date.now(),
-        expiresAt: Date.now() + (8 * 60 * 60 * 1000)
-      };
+      const saved = localStorage.getItem('last-intervention-context');
+      if (saved) {
+        const parsedContext: SavedContext = JSON.parse(saved);
 
-      localStorage.setItem('last-intervention-context', JSON.stringify(context));
-
-      toast.success('📋 Contexte chargé', {
-        description: 'Formulaire pré-rempli avec les données précédentes',
-        duration: 2000
-      });
-
-      router.push('/nouvelle-intervention');
+        // Check if context is still valid (not expired)
+        if (Date.now() < parsedContext.expiresAt) {
+          setContext(parsedContext);
+        } else {
+          // Remove expired context
+          localStorage.removeItem('last-intervention-context');
+        }
+      }
     } catch (error) {
-      console.error('Error saving context:', error);
-      toast.error('Erreur lors du chargement', {
-        description: 'Veuillez réessayer',
-        duration: 2000
-      });
+      console.error('Error loading intervention context:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const getInterventionLabel = (type: string) => {
+    switch (type) {
+      case 'lavage':
+        return '🚛 Lavage Véhicule';
+      case 'carburant-livraison':
+        return '⛽ Livraison Carburant';
+      case 'carburant-cuve':
+        return '🛢️ Remplissage Cuve';
+      default:
+        return type;
+    }
+  };
+
+  if (isLoading) {
+    return null; // Skip loading state for better UX
+  }
+
+  if (!context) {
+    return null; // Don't show section if no context
+  }
+
   return (
-    <Card className="border-border/40">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          Dernière intervention
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <RotateCcw className="h-5 w-5" />
+          Reprendre dernière intervention
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Type & Date */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="font-medium text-sm">{intervention.type}</p>
-            <p className="text-xs text-muted-foreground">{formattedDate}</p>
-          </div>
-        </div>
-
-        {/* Details */}
-        <div className="space-y-2 text-sm">
-          {intervention.client && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Building2 className="h-4 w-4 shrink-0" />
-              <span className="truncate">{intervention.client.name}</span>
-            </div>
-          )}
-
-          {intervention.siteTravail && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4 shrink-0" />
-              <span className="truncate">{intervention.siteTravail}</span>
-            </div>
-          )}
-
-          {intervention.vehicle && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Car className="h-4 w-4 shrink-0" />
-              <span className="truncate">
-                {intervention.vehicle.license_plate} - {intervention.vehicle.brand} {intervention.vehicle.model}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Resume Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={handleResume}
+      <CardContent>
+        <button
+          onClick={() => router.push('/nouvelle-intervention')}
+          className="w-full text-left p-3 rounded-lg border border-border hover:bg-accent hover:border-primary/50 transition-all"
         >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reprendre avec ces paramètres
-        </Button>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm mb-2">
+                {getInterventionLabel(context.typePrestation)}
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                {context.client?.name && (
+                  <p className="truncate">
+                    <span className="font-medium">Client:</span> {context.client.name}
+                  </p>
+                )}
+                {context.siteTravail && (
+                  <p className="truncate">
+                    <span className="font-medium">Site:</span> {context.siteTravail}
+                  </p>
+                )}
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+          </div>
+        </button>
       </CardContent>
     </Card>
   );

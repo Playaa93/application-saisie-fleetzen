@@ -282,50 +282,6 @@ export async function getInterventions(filters?: {
 }
 
 /**
- * Get last completed intervention for authenticated agent.
- * Used to display "Resume last intervention" on dashboard.
- *
- * @returns {Promise<LastIntervention | null>}
- */
-export async function getLastCompletedIntervention() {
-  const { user, supabase } = await verifySession();
-
-  const { data, error } = await supabase
-    .from('interventions')
-    .select(`
-      id,
-      type,
-      created_at,
-      site_travail,
-      client:clients(id, name),
-      vehicle:vehicles(id, license_plate, brand, model)
-    `)
-    .eq('agent_id', user.id)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching last completed intervention:', error);
-    return null;
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  return {
-    id: data.id,
-    type: data.type,
-    createdAt: data.created_at,
-    siteTravail: data.site_travail,
-    client: data.client,
-    vehicle: data.vehicle
-  };
-}
-
-/**
  * Create a new intervention (Server Action).
  *
  * @param {FormData} formData - Intervention form data
