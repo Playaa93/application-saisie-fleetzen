@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import imageCompression from 'browser-image-compression';
+import Compressor from 'compressorjs';
 
 interface PhotoUploadMultipleProps {
   label: string;
@@ -59,15 +59,6 @@ export default function PhotoUploadMultiple({
     const validFiles: File[] = [];
     const newPreviews: string[] = [];
 
-    // Options de compression optimisées pour PWA mobile
-    const compressionOptions = {
-      maxSizeMB: 1, // Cible 1MB max après compression
-      maxWidthOrHeight: 1920, // Max 1920px (Full HD)
-      useWebWorker: true, // Utiliser Web Worker pour ne pas bloquer UI
-      fileType: 'image/jpeg', // Force JPEG (meilleure compression que PNG)
-      initialQuality: 0.85, // Qualité initiale 85% (bon compromis)
-    };
-
     toast.loading('Compression des photos...', { id: 'compress' });
 
     try {
@@ -81,18 +72,37 @@ export default function PhotoUploadMultiple({
           continue;
         }
 
-        // Compression de l'image
-        const compressedFile = await imageCompression(file, compressionOptions);
+        // Compression avec Compressor.js (EXIF + orientation préservés)
+        await new Promise<void>((resolve, reject) => {
+          new Compressor(file, {
+            quality: 0.85, // Qualité 85% (bon compromis)
+            maxWidth: 1920, // Max 1920px (Full HD)
+            maxHeight: 1920,
+            convertTypes: ['image/png', 'image/webp'], // Convertir PNG/WebP -> JPEG
+            convertSize: 1000000, // Convertir si > 1MB
+            mimeType: 'image/jpeg', // Force JPEG (meilleure compression)
 
-        // Renommer le fichier compressé pour garder le nom original
-        const renamedFile = new File(
-          [compressedFile],
-          file.name.replace(/\.[^/.]+$/, '.jpg'), // Force extension .jpg
-          { type: 'image/jpeg' }
-        );
+            // ✅ CRITIQUE pour anti-magouille
+            checkOrientation: true, // Corriger orientation EXIF automatiquement
 
-        validFiles.push(renamedFile);
-        newPreviews.push(URL.createObjectURL(renamedFile));
+            success: (compressedFile) => {
+              // Renommer pour garder nom original
+              const renamedFile = new File(
+                [compressedFile],
+                file.name.replace(/\.[^/.]+$/, '.jpg'),
+                { type: 'image/jpeg', lastModified: file.lastModified }
+              );
+
+              validFiles.push(renamedFile);
+              newPreviews.push(URL.createObjectURL(renamedFile));
+              resolve();
+            },
+            error: (err) => {
+              console.error('Compression error:', err);
+              reject(err);
+            }
+          });
+        });
       }
 
       const updatedFiles = [...files, ...validFiles];
