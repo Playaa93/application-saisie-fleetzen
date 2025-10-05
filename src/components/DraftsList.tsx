@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,10 @@ export default function DraftsList({ onResumeDraft, onStartNew }: DraftsListProp
       setDeleteConfirm(null);
     } catch (error) {
       console.error('Error deleting draft:', error);
-      alert('Erreur lors de la suppression du brouillon');
+      toast.error('Erreur de suppression', {
+        description: 'Le brouillon n\'a pas pu être supprimé',
+        duration: 2500
+      });
     }
   };
 

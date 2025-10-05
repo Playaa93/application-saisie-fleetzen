@@ -438,8 +438,11 @@ export default function NouvelleInterventionPage() {
         // Haptic feedback succès
         triggerHaptic(HapticPattern.SUCCESS);
 
-        alert('✅ Intervention enregistrée avec succès !');
-        router.push('/');
+        toast.success('Intervention enregistrée !', {
+          description: 'Redirection vers l\'accueil...',
+          duration: 1500
+        });
+        setTimeout(() => router.push('/'), 1500);
       } else {
         const errorMessage = responseData?.error || `Erreur ${response.status}`;
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface PhotoUploadMultipleProps {
   label: string;
@@ -47,7 +48,10 @@ export default function PhotoUploadMultiple({
 
     // Validation
     if (files.length + selectedFiles.length > maxFiles) {
-      alert(`Maximum ${maxFiles} photos autorisées`);
+      toast.error(`Maximum ${maxFiles} photos`, {
+        description: 'Vous avez atteint la limite',
+        duration: 2000
+      });
       return;
     }
 
@@ -57,7 +61,10 @@ export default function PhotoUploadMultiple({
     selectedFiles.forEach(file => {
       // Check file size
       if (file.size > maxSizeMB * 1024 * 1024) {
-        alert(`${file.name} dépasse ${maxSizeMB}MB`);
+        toast.error('Fichier trop volumineux', {
+          description: `${file.name} dépasse ${maxSizeMB}MB`,
+          duration: 2500
+        });
         return;
       }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Database, RefreshCw, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,10 @@ export function DataSection() {
     }
 
     setShowClearCacheDialog(false);
-    alert("Cache vidé avec succès");
+    toast.success('Cache vidé', {
+      description: 'Toutes les données temporaires ont été supprimées',
+      duration: 2000
+    });
   };
 
   return (
