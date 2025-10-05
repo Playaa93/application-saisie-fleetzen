@@ -31,10 +31,20 @@ export default async function HomePage() {
   // This prevents redirect loops during navigation
 
   // ✅ Field agent - show mobile app
+  // Get agent name from database
+  const { data: agent } = await supabase
+    .from('agents')
+    .select('first_name, last_name')
+    .eq('id', user.id)
+    .single();
+
+  const agentName = agent
+    ? `${agent.first_name} ${agent.last_name}`.trim()
+    : user.email?.split('@')[0] || 'Agent';
+
   // TEMPORAIRE: Désactiver getDashboardStats() pour debug RLS
   const stats = { total: 0, completed: 0, completionRate: 0 };
   const tasksToday: any[] = [];
-  const agentName = user.email?.split('@')[0] || 'Agent';
 
   // const { stats, tasksToday, agentName } = await getDashboardStats();
 

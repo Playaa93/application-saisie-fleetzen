@@ -40,6 +40,8 @@ const getWeatherInfo = (code: number) => {
 export function WelcomeHero({ name }: WelcomeHeroProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [message, setMessage] = useState(motivationalMessages[0]); // Default to first message
+  const [isMounted, setIsMounted] = useState(false);
 
   const greeting = getGreeting();
   const today = new Date().toLocaleDateString('fr-FR', {
@@ -48,7 +50,12 @@ export function WelcomeHero({ name }: WelcomeHeroProps) {
     month: 'long',
     year: 'numeric'
   });
-  const message = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+
+  // Set random message only on client-side to avoid hydration mismatch
+  useEffect(() => {
+    setMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     // Get user location for weather (default to Paris if denied)
