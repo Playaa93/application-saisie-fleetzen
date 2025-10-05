@@ -414,6 +414,22 @@ export default function NouvelleInterventionPage() {
         // Clear draft after successful submission
         await clearDraft();
 
+        // Save context for next intervention (localStorage)
+        try {
+          const context = {
+            typePrestation,
+            clientId: completeData.clientId,
+            client: completeData.client,
+            siteTravail: completeData.siteTravail,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
+          };
+          localStorage.setItem('last-intervention-context', JSON.stringify(context));
+          console.log('✅ Context saved for next intervention:', context);
+        } catch (error) {
+          console.warn('Failed to save intervention context:', error);
+        }
+
         // Reset form state to prevent auto-save after submission
         setTypePrestation(null);
         setFormData({});

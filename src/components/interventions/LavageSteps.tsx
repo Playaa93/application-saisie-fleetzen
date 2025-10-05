@@ -43,6 +43,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
 
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [contextApplied, setContextApplied] = useState(false);
 
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
@@ -67,6 +68,37 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
     };
     fetchClients();
   }, []);
+
+  // Auto-fill from saved context (only for step 2 - renseignement clients)
+  useEffect(() => {
+    if (currentStep === 2 && !contextApplied && clients.length > 0) {
+      try {
+        const saved = localStorage.getItem('last-intervention-context');
+        if (saved) {
+          const context = JSON.parse(saved);
+
+          // Check if context is valid and matches type 'lavage'
+          if (context.typePrestation === 'lavage' && Date.now() < context.expiresAt) {
+            console.log('🔄 Auto-filling from context:', context);
+
+            // Find client in the list
+            const matchingClient = clients.find(c => c.id === context.clientId);
+            if (matchingClient) {
+              setData(prev => ({
+                ...prev,
+                client: `${matchingClient.name} (${matchingClient.code})`,
+                clientId: context.clientId,
+                siteTravail: context.siteTravail
+              }));
+              setContextApplied(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to apply saved context:', error);
+      }
+    }
+  }, [currentStep, clients, contextApplied]);
 
   // CASCADE 1: Charger les sites quand un client est sélectionné
   useEffect(() => {

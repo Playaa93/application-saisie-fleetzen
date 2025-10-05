@@ -1,13 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import LastContextCard from './LastContextCard';
 
 interface Step1TypePrestationProps {
   onNext: (type: string) => void;
 }
 
+interface SavedContext {
+  typePrestation: string;
+  clientId: string;
+  client: string;
+  siteTravail: string;
+  timestamp: number;
+  expiresAt: number;
+}
+
 export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps) {
   const [selectedType, setSelectedType] = useState<string>('');
+  const [savedContext, setSavedContext] = useState<SavedContext | null>(null);
+  const [useContext, setUseContext] = useState(false);
+
+  // Load saved context from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('last-intervention-context');
+      if (saved) {
+        const context: SavedContext = JSON.parse(saved);
+
+        // Check if context is still valid (not expired)
+        if (Date.now() < context.expiresAt) {
+          setSavedContext(context);
+        } else {
+          // Remove expired context
+          localStorage.removeItem('last-intervention-context');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load saved context:', error);
+    }
+  }, []);
+
+  // Auto-select and auto-navigate if toggle is ON
+  useEffect(() => {
+    if (useContext && savedContext) {
+      setSelectedType(savedContext.typePrestation);
+
+      // Auto-navigate after a short delay to let user see the selection
+      const timer = setTimeout(() => {
+        onNext(savedContext.typePrestation);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [useContext, savedContext, onNext]);
 
   const types = [
     {
@@ -50,52 +96,64 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
-      <h2 className="text-2xl font-bold mb-2">Type de prestation</h2>
-      <p className="text-muted-foreground mb-6">Sélectionnez le type d'intervention à effectuer</p>
+    <div className="space-y-4">
+      {/* Last Context Card - Show if context exists */}
+      {savedContext && (
+        <LastContextCard
+          context={savedContext}
+          isActive={useContext}
+          onToggle={setUseContext}
+        />
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {types.map((type) => (
-          <label
-            key={type.id}
-            className={`block p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary/50
-              ${selectedType === type.id
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:bg-accent'
-              }`}
-          >
-            <input
-              type="radio"
-              name="type"
-              value={type.id}
-              checked={selectedType === type.id}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="sr-only"
-            />
-            <div className="flex items-center">
-              <div className="text-primary mr-4">{type.icon}</div>
-              <div className="flex-1">
-                <div className="font-semibold text-lg">{type.label}</div>
-                <div className="text-sm text-muted-foreground">{type.description}</div>
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
+        <h2 className="text-2xl font-bold mb-2">Type de prestation</h2>
+        <p className="text-muted-foreground mb-6">Sélectionnez le type d'intervention à effectuer</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {types.map((type) => (
+            <label
+              key={type.id}
+              className={`block p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary/50
+                ${selectedType === type.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:bg-accent'
+                }`}
+            >
+              <input
+                type="radio"
+                name="type"
+                value={type.id}
+                checked={selectedType === type.id}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="sr-only"
+                disabled={useContext} // Disable manual selection if toggle is ON
+              />
+              <div className="flex items-center">
+                <div className="text-primary mr-4">{type.icon}</div>
+                <div className="flex-1">
+                  <div className="font-semibold text-lg">{type.label}</div>
+                  <div className="text-sm text-muted-foreground">{type.description}</div>
+                </div>
+                {selectedType === type.id && (
+                  <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
               </div>
-              {selectedType === type.id && (
-                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-          </label>
-        ))}
+            </label>
+          ))}
 
-        <button
-          type="submit"
-          disabled={!selectedType}
-          className="w-full mt-6 bg-primary text-primary-foreground py-3 rounded-lg font-medium
-            hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
-        >
-          Suivant →
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={!selectedType || useContext} // Disable if toggle ON (auto-nav)
+            className="w-full mt-6 bg-primary text-primary-foreground py-3 rounded-lg font-medium
+              hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
+          >
+            {useContext ? 'Chargement...' : 'Suivant →'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
