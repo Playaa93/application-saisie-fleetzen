@@ -10,6 +10,8 @@ interface PhotoUploadMultipleProps {
   maxSizeMB?: number;
   onChange: (files: File[]) => void;
   value?: File[];
+  required?: boolean;
+  error?: string;
 }
 
 export default function PhotoUploadMultiple({
@@ -18,7 +20,9 @@ export default function PhotoUploadMultiple({
   maxFiles = 5,
   maxSizeMB = 10,
   onChange,
-  value = []
+  value = [],
+  required = false,
+  error
 }: PhotoUploadMultipleProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>(value);
@@ -83,6 +87,7 @@ export default function PhotoUploadMultiple({
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
         {helperText && (
           <p className="text-xs text-gray-500 mb-2">{helperText}</p>
@@ -95,18 +100,22 @@ export default function PhotoUploadMultiple({
           capture="environment"
           onChange={handleFileChange}
           disabled={files.length >= maxFiles}
-          className="block w-full text-sm text-muted-foreground
+          className={`block w-full text-sm text-muted-foreground
             file:mr-4 file:py-2 file:px-4
             file:rounded-lg file:border-0
             file:text-sm file:font-semibold
             file:bg-primary/10 file:text-primary
             hover:file:bg-primary/20
-            disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled:opacity-50 disabled:cursor-not-allowed
+            ${error ? 'border border-red-500 rounded-lg' : ''}`}
         />
 
         <p className="text-xs text-gray-500 mt-1">
           {files.length}/{maxFiles} photos • Max {maxSizeMB}MB par fichier
         </p>
+        {error && (
+          <p className="text-xs text-red-500 mt-1">{error}</p>
+        )}
       </div>
 
       {/* Previews */}

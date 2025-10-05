@@ -42,6 +42,7 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
   const [loadingVehicles, setLoadingVehicles] = useState(false);
 
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
@@ -377,27 +378,72 @@ export default function LavageSteps({ currentStep, formData, onNext, onPrevious,
 
   // Étape 3: Photos
   if (currentStep === 3) {
+    const validatePhotos = () => {
+      const newErrors: Record<string, string> = {};
+
+      if (!data.photosAvant || data.photosAvant.length === 0) {
+        newErrors.photosAvant = 'Au moins 1 photo avant est requise';
+      }
+
+      if (!data.photosApres || data.photosApres.length === 0) {
+        newErrors.photosApres = 'Au moins 1 photo après est requise';
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNext = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (validatePhotos()) {
+        setErrors({});
+        onNext(data);
+      }
+    };
+
+    const isValid = (!data.photosAvant || data.photosAvant.length === 0) || (!data.photosApres || data.photosApres.length === 0);
+
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Photos</h2>
-        <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
+        <form onSubmit={handleNext} className="space-y-6">
           <PhotoUploadMultiple
             label="Photo avant"
             helperText="Prenez des photos avant l'intervention"
             maxFiles={5}
-            onChange={(files) => setData({ ...data, photosAvant: files })}
+            onChange={(files) => {
+              setData({ ...data, photosAvant: files });
+              if (files.length > 0 && errors.photosAvant) {
+                setErrors({ ...errors, photosAvant: '' });
+              }
+            }}
             value={data.photosAvant}
+            required
+            error={errors.photosAvant}
           />
           <PhotoUploadMultiple
             label="Photo après"
             helperText="Prenez des photos après l'intervention"
             maxFiles={5}
-            onChange={(files) => setData({ ...data, photosApres: files })}
+            onChange={(files) => {
+              setData({ ...data, photosApres: files });
+              if (files.length > 0 && errors.photosApres) {
+                setErrors({ ...errors, photosApres: '' });
+              }
+            }}
             value={data.photosApres}
+            required
+            error={errors.photosApres}
           />
           <div className="flex gap-4">
             <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
-            <button type="submit" className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark">Suivant →</button>
+            <button
+              type="submit"
+              className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isValid}
+            >
+              Suivant →
+            </button>
           </div>
         </form>
       </div>

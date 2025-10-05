@@ -42,6 +42,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   const [loadingVehicles, setLoadingVehicles] = useState(false);
 
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
@@ -330,10 +331,35 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
 
   // Étape 2: Carburant livré
   if (currentStep === 2) {
+    const validateCarburant = () => {
+      const newErrors: Record<string, string> = {};
+
+      if (!data.photoManometre || data.photoManometre.length === 0) {
+        newErrors.photoManometre = 'Photo du manomètre requise';
+      }
+
+      if (!data.quantiteLivree || parseFloat(data.quantiteLivree) <= 0) {
+        newErrors.quantiteLivree = 'Quantité livrée requise';
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNext = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (validateCarburant()) {
+        setErrors({});
+        onNext(data);
+      }
+    };
+
+    const isValid = (!data.photoManometre || data.photoManometre.length === 0) || !data.quantiteLivree || parseFloat(data.quantiteLivree) <= 0;
+
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Carburant livré</h2>
-        <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
+        <form onSubmit={handleNext} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Type de carburant *</label>
             <div className="space-y-2">
@@ -351,21 +377,38 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
             </div>
           </div>
           <PhotoUploadMultiple
-            label="Photo du manomètre de la cuve *"
+            label="Photo du manomètre de la cuve"
             maxFiles={1}
-            onChange={(files) => setData({ ...data, photoManometre: files })}
+            onChange={(files) => {
+              setData({ ...data, photoManometre: files });
+              if (files.length > 0 && errors.photoManometre) {
+                setErrors({ ...errors, photoManometre: '' });
+              }
+            }}
             value={data.photoManometre}
+            required
+            error={errors.photoManometre}
           />
           <div>
-            <label className="block text-sm font-medium mb-2">Quantité livrée (L) *</label>
+            <label className="block text-sm font-medium mb-2">
+              Quantité livrée (L) <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               value={data.quantiteLivree || ''}
-              onChange={(e) => setData({ ...data, quantiteLivree: e.target.value })}
-              className="w-full p-3 border rounded-lg"
+              onChange={(e) => {
+                setData({ ...data, quantiteLivree: e.target.value });
+                if (e.target.value && parseFloat(e.target.value) > 0 && errors.quantiteLivree) {
+                  setErrors({ ...errors, quantiteLivree: '' });
+                }
+              }}
+              className={`w-full p-3 border rounded-lg ${errors.quantiteLivree ? 'border-red-500' : ''}`}
               placeholder="0"
               required
             />
+            {errors.quantiteLivree && (
+              <p className="text-xs text-red-500 mt-1">{errors.quantiteLivree}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Kilométrage du tracteur / porteur *</label>
@@ -380,7 +423,13 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
           </div>
           <div className="flex gap-4">
             <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
-            <button type="submit" className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark">Suivant →</button>
+            <button
+              type="submit"
+              className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isValid}
+            >
+              Suivant →
+            </button>
           </div>
         </form>
       </div>
