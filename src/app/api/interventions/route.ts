@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 
+// Service role client for admin operations (storage upload)
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,20 +13,15 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get('agent_id');
     const myInterventions = searchParams.get('my') === 'true';
 
+    // Create Supabase SSR client (auto-handles cookies)
+    const supabase = await createClient();
+
     // Get authenticated user if filtering by "my interventions"
     let currentUserId: string | null = null;
     if (myInterventions) {
-      const token = request.cookies.get('sb-access-token')?.value ||
-                    request.headers.get('authorization')?.replace('Bearer ', '');
-
-      if (token) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: { user } } = await supabase.auth.getUser(token);
-        currentUserId = user?.id || null;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUserId = user?.id || null;
     }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Build query with optional agent filter
     let query = supabase
@@ -76,7 +73,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Create Supabase SSR client for auth
+    const supabase = await createClient();
     const formData = await request.formData();
 
     // Récupérer le type d'intervention en texte
@@ -100,28 +98,18 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Found intervention type ID:', interventionTypes.id);
 
-    // Get authenticated agent from token
-    const token = request.cookies.get('sb-access-token')?.value ||
-                  request.headers.get('authorization')?.replace('Bearer ', '');
+    // Get authenticated agent from SSR session
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    let agentId: string | null = null;
-
-    if (token) {
-      const supabaseAuth = createClient(supabaseUrl, supabaseKey);
-      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-
-      if (!authError && user) {
-        agentId = user.id;
-        console.log('✅ Using authenticated agent ID:', agentId);
-      }
-    }
-
-    if (!agentId) {
-      console.error('❌ No authenticated agent');
+    if (authError || !user) {
+      console.error('❌ No authenticated agent:', authError?.message);
       return NextResponse.json({
         error: 'Agent non authentifié'
       }, { status: 401 });
     }
+
+    const agentId = user.id;
+    console.log('✅ Using authenticated agent ID:', agentId);
 
     // Helper pour convertir "null" string en null réel
     const getFormValue = (key: string): string | null => {
@@ -149,8 +137,11 @@ export async function POST(request: NextRequest) {
     if (!clientId && interventionTypeName === 'Remplissage Cuve') {
       console.log('🏢 Remplissage Cuve détecté - recherche du client interne...');
 
+      // Use service role for internal operations
+      const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
+
       // Chercher ou créer le client "FleetZen - Opérations Internes"
-      const { data: internalClient, error: clientSearchError } = await supabase
+      const { data: internalClient, error: clientSearchError } = await serviceClient
         .from('clients')
         .select('id')
         .eq('code', 'FLEETZEN-INTERNAL')
@@ -161,7 +152,7 @@ export async function POST(request: NextRequest) {
         clientId = internalClient.id;
       } else {
         console.log('📝 Création du client interne...');
-        const { data: newClient, error: createError } = await supabase
+        const { data: newClient, error: createError } = await serviceClient
           .from('clients')
           .insert([{
             name: 'FleetZen - Opérations Internes',
@@ -212,8 +203,11 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Attempting to insert:', interventionData);
 
+    // Use service role client for INSERT (bypasses RLS)
+    const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
+
     // Insérer dans Supabase
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('interventions')
       .insert([interventionData])
       .select()
@@ -261,6 +255,9 @@ export async function POST(request: NextRequest) {
     const photosJaugesApresUrls: string[] = [];
     const photoTicketUrls: string[] = [];
 
+    // Create service role client for storage uploads (bypasses RLS)
+    const storageClient = createServiceClient(supabaseUrl, supabaseServiceKey);
+
     // Upload des photos AVANT
     for (let i = 0; i < photosAvantFiles.length; i++) {
       const photoFile = photosAvantFiles[i];
@@ -277,7 +274,7 @@ export async function POST(request: NextRequest) {
 
         console.log(`⬆️ Uploading AVANT to: ${fileName}`);
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await storageClient.storage
           .from('intervention-photos')
           .upload(fileName, photoFile, {
             contentType: photoFile.type || 'image/jpeg',
@@ -288,7 +285,7 @@ export async function POST(request: NextRequest) {
           console.error(`❌ Error uploading photo AVANT ${i}:`, uploadError);
           console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
         } else {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = storageClient.storage
             .from('intervention-photos')
             .getPublicUrl(fileName);
 
@@ -314,7 +311,7 @@ export async function POST(request: NextRequest) {
 
         console.log(`⬆️ Uploading APRÈS to: ${fileName}`);
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await storageClient.storage
           .from('intervention-photos')
           .upload(fileName, photoFile, {
             contentType: photoFile.type || 'image/jpeg',
@@ -325,7 +322,7 @@ export async function POST(request: NextRequest) {
           console.error(`❌ Error uploading photo APRÈS ${i}:`, uploadError);
           console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
         } else {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = storageClient.storage
             .from('intervention-photos')
             .getPublicUrl(fileName);
 
@@ -351,7 +348,7 @@ export async function POST(request: NextRequest) {
 
         console.log(`⬆️ Uploading MANOMETRE to: ${fileName}`);
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await storageClient.storage
           .from('intervention-photos')
           .upload(fileName, photoFile, {
             contentType: photoFile.type || 'image/jpeg',
@@ -362,7 +359,7 @@ export async function POST(request: NextRequest) {
           console.error(`❌ Error uploading photo MANOMETRE ${i}:`, uploadError);
           console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
         } else {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = storageClient.storage
             .from('intervention-photos')
             .getPublicUrl(fileName);
 
@@ -378,14 +375,14 @@ export async function POST(request: NextRequest) {
       if (photoFile && photoFile.size > 0) {
         const fileExtension = photoFile.name.split('.').pop() || 'jpg';
         const fileName = `${data.id}/jauges-avant-${Date.now()}-${i}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await storageClient.storage
           .from('intervention-photos')
           .upload(fileName, photoFile, {
             contentType: photoFile.type || 'image/jpeg',
             cacheControl: '3600',
           });
         if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = storageClient.storage
             .from('intervention-photos')
             .getPublicUrl(fileName);
           photosJaugesAvantUrls.push(publicUrl);
@@ -400,14 +397,14 @@ export async function POST(request: NextRequest) {
       if (photoFile && photoFile.size > 0) {
         const fileExtension = photoFile.name.split('.').pop() || 'jpg';
         const fileName = `${data.id}/jauges-apres-${Date.now()}-${i}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await storageClient.storage
           .from('intervention-photos')
           .upload(fileName, photoFile, {
             contentType: photoFile.type || 'image/jpeg',
             cacheControl: '3600',
           });
         if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = storageClient.storage
             .from('intervention-photos')
             .getPublicUrl(fileName);
           photosJaugesApresUrls.push(publicUrl);
@@ -422,14 +419,14 @@ export async function POST(request: NextRequest) {
       if (photoFile && photoFile.size > 0) {
         const fileExtension = photoFile.name.split('.').pop() || 'jpg';
         const fileName = `${data.id}/ticket-${Date.now()}-${i}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await storageClient.storage
           .from('intervention-photos')
           .upload(fileName, photoFile, {
             contentType: photoFile.type || 'image/jpeg',
             cacheControl: '3600',
           });
         if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = storageClient.storage
             .from('intervention-photos')
             .getPublicUrl(fileName);
           photoTicketUrls.push(publicUrl);
@@ -474,7 +471,10 @@ export async function POST(request: NextRequest) {
         }))
       };
 
-      await supabase
+      // Use service client for UPDATE (already created above)
+      const updateClient = createServiceClient(supabaseUrl, supabaseServiceKey);
+
+      await updateClient
         .from('interventions')
         .update({
           metadata: {
