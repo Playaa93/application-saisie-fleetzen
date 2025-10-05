@@ -2,6 +2,72 @@
 
 Toutes les modifications notables du projet sont documentées dans ce fichier.
 
+## [2025-10-05] - Fix Upload Photos + Sécurisation RLS
+
+### 🐛 Bug Fix Critique - Upload Photos
+
+**Problème**: Photos capturées mais n'arrivaient jamais dans le bucket Supabase
+- Toast "succès" affiché côté client
+- Nombre de photos visible dans historique
+- Bucket Supabase vide
+- Photos corrompues/inaccessibles
+
+**Causes identifiées**:
+1. Envoi direct de l'objet `File` (navigateur) sans conversion vers `Buffer` (Node.js)
+2. Bucket en mode privé (`public: false`) → URLs publiques ne fonctionnaient pas
+3. Policy "Allow public uploads" permettait upload non authentifié (faille sécurité)
+
+**Solutions implémentées**:
+- ✅ Conversion explicite `File` → `ArrayBuffer` → `Buffer` avant upload
+- ✅ Logs détaillés pour debug (📤 upload start, ✅ success, ⚠️ warnings)
+- ✅ Bucket mis en mode public (`public: true`) pour URLs publiques
+- ✅ Suppression policy "Allow public uploads" (sécurité)
+- ✅ Conservation "Allow public reads" (nécessaire pour emails/PDF)
+
+**Fichiers modifiés**:
+- [`src/app/api/interventions/route.ts`](src/app/api/interventions/route.ts#L344-L400) - Fix conversion File → Buffer
+
+**Documentation créée**:
+- [`docs/FIX_PHOTO_UPLOAD.md`](docs/FIX_PHOTO_UPLOAD.md) - Guide complet du fix code
+- [`docs/SQL_CHECK_BUCKET.sql`](docs/SQL_CHECK_BUCKET.sql) - Scripts diagnostic bucket
+- [`docs/DIAGNOSTIC_BUCKET_SUPABASE.md`](docs/DIAGNOSTIC_BUCKET_SUPABASE.md) - Rapport diagnostic complet
+- [`docs/SECURITE_RLS_PHOTOS.md`](docs/SECURITE_RLS_PHOTOS.md) - Documentation sécurité RLS
+
+### 🔒 Sécurisation RLS Bucket Storage
+
+**Configuration finale** :
+- **Upload** : Backend seulement (Service Role Key)
+- **Lecture** : URLs publiques (partageables dans emails/PDF)
+- **Sécurité** : RLS protège l'upload, URLs difficiles à deviner
+
+**Policies RLS actives** (9 policies) :
+- ✅ `Admins upload/voient/suppriment toutes photos`
+- ✅ `Agents upload/voient/suppriment leurs photos` (via RLS)
+- ✅ `Clients voient photos de leur flotte` (filtré par `client_users`)
+- ✅ `Allow public reads` (pour URLs publiques)
+- ❌ ~~`Allow public uploads`~~ → **SUPPRIMÉE** (faille sécurité)
+
+**Matrice permissions** :
+| Utilisateur | Upload | Lecture | Suppression |
+|-------------|--------|---------|-------------|
+| Agent mobile | ✅ Via API (Service Role) | ✅ URLs publiques | ❌ Non |
+| Admin | ✅ Via RLS | ✅ Tout | ✅ Tout |
+| Client | ❌ Non | ✅ Sa flotte | ❌ Non |
+| Public | ❌ Non | ✅ Si URL connue | ❌ Non |
+
+**Note importante** : URLs publiques acceptées car photos véhicules non sensibles. Pour sécurité maximale, voir alternative URLs signées dans [`docs/SECURITE_RLS_PHOTOS.md`](docs/SECURITE_RLS_PHOTOS.md).
+
+### 🔍 Tests à Effectuer
+
+1. **Vérifier bucket Supabase** avec [`docs/SQL_CHECK_BUCKET.sql`](docs/SQL_CHECK_BUCKET.sql)
+2. **Prendre photo réelle** depuis mobile et soumettre intervention
+3. **Consulter logs Vercel** pour vérifier upload (rechercher `📤 Uploading photo`)
+4. **Vérifier bucket** contient fichier `{intervention_id}/avant-{timestamp}-0.jpg`
+5. **Tester URL publique** est accessible
+6. **Vérifier sécurité** : Tentative upload non-auth doit échouer
+
+---
+
 ## [2025-10-05] - Portails Admin & Client Complets
 
 ### 🎯 Objectif

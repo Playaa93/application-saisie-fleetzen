@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { createClient } from '@/lib/supabase/server';
 import logger, { logError } from '@/lib/logger';
 import { interventionQuerySchema } from '@/lib/validations/api';
@@ -320,41 +324,84 @@ export async function POST(request: NextRequest) {
     const photosJaugesApresUrls: string[] = [];
     const photoTicketUrls: string[] = [];
 
+    const photoRecordsToInsert: Array<{
+      intervention_id: string;
+      url: string;
+      file_name: string;
+      file_size: number;
+      mime_type: string;
+      photo_type: string;
+      order: number;
+    }> = [];
+
     // Create service role client for storage uploads (bypasses RLS)
     const storageClient = createServiceClient(supabaseUrl, supabaseServiceKey);
 
     // Helper function for photo upload
     const uploadPhoto = async (photoFile: File, type: string, index: number): Promise<string | null> => {
-      if (!photoFile || photoFile.size === 0) return null;
-
-      const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-      const fileName = `${data.id}/${type}-${Date.now()}-${index}.${fileExtension}`;
-
-      logger.debug({
-        type,
-        index,
-        size: photoFile.size,
-        name: photoFile.name || 'unnamed',
-        contentType: photoFile.type
-      }, 'Uploading intervention photo');
-
-      const { error: uploadError } = await storageClient.storage
-        .from('intervention-photos')
-        .upload(fileName, photoFile, {
-          contentType: photoFile.type || 'image/jpeg',
-          cacheControl: '3600',
-        });
-
-      if (uploadError) {
-        logError(uploadError, { context: 'Photo upload', type, index, fileName });
+      if (!photoFile || photoFile.size === 0) {
+        logger.warn({ type, index }, '⚠️ Photo file is null or empty');
         return null;
       }
 
-      const { data: { publicUrl } } = storageClient.storage
-        .from('intervention-photos')
-        .getPublicUrl(fileName);
+      try {
+        // ✅ CONVERSION CRITIQUE: File -> ArrayBuffer pour Supabase Storage
+        const arrayBuffer = await photoFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-      return publicUrl;
+        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+        const fileName = `${data.id}/${type}-${Date.now()}-${index}.${fileExtension}`;
+
+        logger.info({
+          type,
+          index,
+          size: photoFile.size,
+          bufferSize: buffer.length,
+          name: photoFile.name || 'unnamed',
+          contentType: photoFile.type,
+          fileName
+        }, '📤 Uploading photo to Supabase Storage');
+
+        const { data: uploadData, error: uploadError } = await storageClient.storage
+          .from('intervention-photos')
+          .upload(fileName, buffer, {
+            contentType: photoFile.type || 'image/jpeg',
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          logError(uploadError, {
+            context: 'Photo upload FAILED',
+            type,
+            index,
+            fileName,
+            errorMessage: uploadError.message
+          });
+          return null;
+        }
+
+        logger.info({
+          fileName,
+          type,
+          uploadPath: uploadData?.path
+        }, '✅ Photo uploaded to Supabase Storage');
+
+        const { data: { publicUrl } } = storageClient.storage
+          .from('intervention-photos')
+          .getPublicUrl(fileName);
+
+        logger.debug({ publicUrl }, 'Public URL generated');
+
+        return publicUrl;
+      } catch (error) {
+        logError(error, {
+          context: 'Photo upload exception',
+          type,
+          index
+        });
+        return null;
+      }
     };
 
     // Upload des photos AVANT
@@ -391,6 +438,19 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < photoTicketFiles.length; i++) {
       const url = await uploadPhoto(photoTicketFiles[i], 'ticket', i);
       if (url) photoTicketUrls.push(url);
+    }
+
+    if (photoRecordsToInsert.length > 0) {
+      const { error: photoInsertError } = await storageClient
+        .from('intervention_photos')
+        .insert(photoRecordsToInsert);
+      if (photoInsertError) {
+        logError(photoInsertError, {
+          context: 'Insert intervention_photos',
+          interventionId: data.id,
+          photoCount: photoRecordsToInsert.length,
+        });
+      }
     }
 
     // Mettre à jour l'intervention avec les URLs des photos séparées
@@ -432,7 +492,7 @@ export async function POST(request: NextRequest) {
       // Use service client for UPDATE (already created above)
       const updateClient = createServiceClient(supabaseUrl, supabaseServiceKey);
 
-      await updateClient
+      const { error: metadataUpdateError } = await updateClient
         .from('interventions')
         .update({
           metadata: {
@@ -441,6 +501,21 @@ export async function POST(request: NextRequest) {
           }
         })
         .eq('id', data.id);
+
+      if (metadataUpdateError) {
+        logError(metadataUpdateError, {
+          context: 'Update intervention metadata photos',
+          interventionId: data.id,
+          photoCounts: {
+            avant: photosAvantUrls.length,
+            apres: photosApresUrls.length,
+            manometre: photoManometreUrls.length,
+            jaugesAvant: photosJaugesAvantUrls.length,
+            jaugesApres: photosJaugesApresUrls.length,
+            ticket: photoTicketUrls.length,
+          },
+        });
+      }
 
       const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
         photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length;
@@ -487,3 +562,7 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+
+
+
