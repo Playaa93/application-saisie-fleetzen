@@ -183,13 +183,22 @@ export async function POST(request: NextRequest) {
             intervention: completeData,
           });
         } catch (error) {
-          console.error(`Sync failed for localId ${interventionData.localId}:`, error);
+          logError(error, {
+            context: 'Sync individual intervention',
+            localId: interventionData.localId
+          });
           syncResults.failed.push({
             localId: interventionData.localId,
             error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
+
+      logger.info({
+        total: validatedData.interventions.length,
+        succeeded: syncResults.success.length,
+        failed: syncResults.failed.length
+      }, 'Batch sync completed');
 
       return NextResponse.json({
         success: true,
@@ -201,7 +210,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (error) {
-      console.error('Batch sync error:', error);
+      logError(error, { context: 'POST /api/interventions/sync - batch error' });
 
       if (error instanceof z.ZodError) {
         return NextResponse.json(

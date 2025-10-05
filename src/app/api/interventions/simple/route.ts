@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,12 +17,14 @@ export async function GET() {
       .limit(10);
 
     if (error) {
-      console.error('Error fetching interventions:', error);
+      logError(error, { context: 'GET /api/interventions/simple - Supabase query' });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch interventions' },
         { status: 500 }
       );
     }
+
+    logger.debug({ count: interventions?.length || 0 }, 'Simple interventions fetched successfully');
 
     return NextResponse.json({
       success: true,
@@ -29,7 +32,7 @@ export async function GET() {
       count: interventions?.length || 0,
     });
   } catch (error) {
-    console.error('Error in GET /api/interventions/simple:', error);
+    logError(error, { context: 'GET /api/interventions/simple - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -31,7 +32,7 @@ export async function GET() {
       .order('sort_order');
 
     if (typesError) {
-      console.error('Error fetching intervention types:', typesError);
+      logError(typesError, { context: 'GET /api/intervention-types - fetch types' });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch intervention types' },
         { status: 500 }
@@ -46,7 +47,7 @@ export async function GET() {
       .order('sort_order');
 
     if (fieldsError) {
-      console.error('Error fetching intervention fields:', fieldsError);
+      logError(fieldsError, { context: 'GET /api/intervention-types - fetch fields' });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch intervention fields' },
         { status: 500 }
@@ -59,13 +60,15 @@ export async function GET() {
       fields: fields.filter(f => f.intervention_type_id === type.id),
     }));
 
+    logger.debug({ count: typesWithFields.length }, 'Intervention types fetched successfully');
+
     return NextResponse.json({
       success: true,
       interventionTypes: typesWithFields,
       count: typesWithFields.length,
     });
   } catch (error) {
-    console.error('Error in GET /api/intervention-types:', error);
+    logError(error, { context: 'GET /api/intervention-types - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

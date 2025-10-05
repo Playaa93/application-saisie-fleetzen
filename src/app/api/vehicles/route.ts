@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
     const category = searchParams.get('category');
 
     if (!clientId) {
+      logger.warn({ site, category }, 'GET /api/vehicles - missing clientId');
       return NextResponse.json(
         { success: false, error: 'clientId parameter is required' },
         { status: 400 }
@@ -54,12 +56,19 @@ export async function GET(request: Request) {
     const { data: vehicles, error } = await query.order('license_plate');
 
     if (error) {
-      console.error('Error fetching vehicles:', error);
+      logError(error, { context: 'GET /api/vehicles', clientId, site, category });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch vehicles' },
         { status: 500 }
       );
     }
+
+    logger.debug({
+      clientId,
+      site,
+      category,
+      count: vehicles?.length || 0
+    }, 'Vehicles fetched successfully');
 
     return NextResponse.json({
       success: true,
@@ -67,7 +76,7 @@ export async function GET(request: Request) {
       count: vehicles?.length || 0,
     });
   } catch (error) {
-    console.error('Error in GET /api/vehicles:', error);
+    logError(error, { context: 'GET /api/vehicles - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -95,6 +104,7 @@ export async function POST(request: Request) {
     } = body;
 
     if (!licensePlate || !clientId || !site || !category) {
+      logger.warn({ hasLicensePlate: !!licensePlate, hasClientId: !!clientId, hasSite: !!site, hasCategory: !!category }, 'POST /api/vehicles - missing required fields');
       return NextResponse.json(
         { success: false, error: 'licensePlate, clientId, site, and category are required' },
         { status: 400 }
@@ -121,19 +131,21 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Error creating vehicle:', error);
+      logError(error, { context: 'POST /api/vehicles', licensePlate, clientId, site });
       return NextResponse.json(
         { success: false, error: 'Failed to create vehicle' },
         { status: 500 }
       );
     }
 
+    logger.info({ vehicleId: newVehicle.id, licensePlate, site }, 'Vehicle created successfully');
+
     return NextResponse.json({
       success: true,
       vehicle: newVehicle,
     });
   } catch (error) {
-    console.error('Error in POST /api/vehicles:', error);
+    logError(error, { context: 'POST /api/vehicles - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -38,6 +38,8 @@ Problème: Module @supabase/ssr introuvable
 
 **ALWAYS consult CHANGELOG.md before starting any work** to understand recent changes, current architecture, and ongoing development patterns.
 
+**AUDIT DU CODE (2025-10-05)**: Un audit complet a été réalisé avec un score global de 7.5/10. Consultez [`docs/AUDIT_CODE_2025.md`](docs/AUDIT_CODE_2025.md) pour les recommandations détaillées sur la sécurité, les performances, la qualité du code et le plan d'action priorisé.
+
 ## MCP Tools Available
 
 This project has access to **Supabase MCP** for direct database operations:

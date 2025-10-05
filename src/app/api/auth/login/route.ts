@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import logger, { logError } from '@/lib/logger';
+import { loginSchema } from '@/lib/validations/api';
+import { ZodError } from 'zod';
 
 // Explicit runtime configuration for Vercel
 export const runtime = 'nodejs';
@@ -7,14 +10,25 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('=== START POST /api/auth/login ===');
+  const startTime = Date.now();
 
-  let body: { email?: string; password?: string } | null = null;
-
+  // Parse and validate request body with Zod
+  let body;
   try {
-    body = await request.json();
+    const rawBody = await request.json();
+    body = loginSchema.parse(rawBody);
   } catch (error) {
-    console.error('Invalid JSON payload', error);
+    if (error instanceof ZodError) {
+      logger.warn({ errors: error.errors }, 'Login validation failed');
+      return NextResponse.json({
+        success: false,
+        error: 'Données invalides',
+        errorCode: 'VALIDATION_ERROR',
+        details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+      }, { status: 400 });
+    }
+
+    logError(error, { context: 'POST /api/auth/login - Invalid JSON' });
     return NextResponse.json({
       success: false,
       error: 'Corps JSON invalide',
@@ -22,18 +36,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }, { status: 400 });
   }
 
-  const email = body?.email?.toLowerCase().trim();
-  const password = body?.password;
+  const email = body.email.toLowerCase().trim();
+  const password = body.password;
 
-  if (!email || !password) {
-    return NextResponse.json({
-      success: false,
-      error: 'Email et mot de passe requis',
-      errorCode: 'CREDENTIALS_MISSING',
-    }, { status: 400 });
-  }
-
-  console.log(`Attempting login for: ${email}`);
+  logger.debug({ email }, 'Login attempt started'); // email sera automatiquement redacted
 
   try {
     // Use SSR client (same as DAL) to ensure cookie compatibility
@@ -41,7 +47,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      console.error('Login error:', error);
+      const duration = Date.now() - startTime;
+      logError(error, {
+        context: 'POST /api/auth/login - Sign in failed',
+        email, // sera redacted
+        duration
+      });
       return NextResponse.json({
         success: false,
         error: error.message || 'Erreur de connexion',
@@ -50,6 +61,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (!data.session || !data.user) {
+      logger.warn({ email }, 'Login succeeded but no session created');
       return NextResponse.json({
         success: false,
         error: 'Aucune session creee',
@@ -57,7 +69,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 401 });
     }
 
-    console.log('Login successful:', data.user.email);
+    const duration = Date.now() - startTime;
+    logger.info({
+      userId: data.user.id,
+      email: data.user.email, // sera redacted
+      duration
+    }, 'Login successful');
 
     // Supabase SSR client handles cookies automatically
     // Return minimal user data for client
@@ -83,7 +100,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    console.error('=== ERROR in POST /api/auth/login ===', error);
+    const duration = Date.now() - startTime;
+    logError(error, {
+      context: 'POST /api/auth/login - Unexpected error',
+      duration
+    });
     const message = error instanceof Error ? error.message : 'Unknown error';
 
     return NextResponse.json({

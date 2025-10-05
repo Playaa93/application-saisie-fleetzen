@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import logger from '@/lib/logger';
 
 // Endpoint de test ultra-simple pour vérifier que les API routes fonctionnent
 export async function GET() {
-  console.log('✅ Test endpoint called successfully!');
+  logger.info('Test endpoint called successfully');
 
   return NextResponse.json({
     ok: true,

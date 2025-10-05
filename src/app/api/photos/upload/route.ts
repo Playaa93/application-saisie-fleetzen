@@ -12,6 +12,7 @@ import { db } from '@/db';
 import { interventionPhotos, interventions } from '@/db/intervention-schema';
 import { eq } from 'drizzle-orm';
 import { requireAuth, AuthenticatedRequest } from '@/middleware/auth';
+import logger, { logError } from '@/lib/logger';
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -22,7 +23,7 @@ async function ensureUploadDir() {
   try {
     await mkdir(UPLOAD_DIR, { recursive: true });
   } catch (error) {
-    console.error('Error creating upload directory:', error);
+    logError(error, { context: 'ensureUploadDir' });
   }
 }
 
@@ -177,6 +178,12 @@ export async function POST(request: NextRequest) {
         uploadedPhotos.push(photo);
       }
 
+      logger.info({
+        interventionId,
+        photosCount: uploadedPhotos.length,
+        totalSize: uploadedPhotos.reduce((sum, p) => sum + p.fileSize, 0)
+      }, 'Photos uploaded successfully');
+
       return NextResponse.json({
         success: true,
         data: uploadedPhotos,
@@ -185,7 +192,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (error) {
-      console.error('Photo upload error:', error);
+      logError(error, { context: 'POST /api/photos/upload' });
 
       return NextResponse.json(
         { error: 'Internal server error' },

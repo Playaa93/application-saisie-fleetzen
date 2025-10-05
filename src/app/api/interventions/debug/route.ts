@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
+import logger, { logError } from '@/lib/logger';
 
 // Test endpoint to isolate Supabase import issue
 export async function GET() {
   try {
-    console.log('Debug endpoint called');
+    logger.debug('Debug endpoint called');
 
     // Test 1: Can we import createClient?
     const { createClient } = await import('@supabase/supabase-js');
-    console.log('✅ Supabase import successful');
+    logger.debug('Supabase import successful');
 
     // Test 2: Can we access env vars?
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    console.log('✅ Env vars accessible');
+    logger.debug({ hasUrl: !!supabaseUrl, hasKey: !!supabaseKey }, 'Env vars accessible');
 
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json({
@@ -25,7 +26,7 @@ export async function GET() {
 
     // Test 3: Can we create client?
     const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('✅ Supabase client created');
+    logger.debug('Supabase client created');
 
     return NextResponse.json({
       success: true,
@@ -34,7 +35,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Debug endpoint error:', error);
+    logError(error, { context: 'GET /api/interventions/debug' });
     return NextResponse.json({
       error: 'Debug check failed',
       message: error instanceof Error ? error.message : String(error),

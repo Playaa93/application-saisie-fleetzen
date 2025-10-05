@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
       .not('work_site', 'is', null);
 
     if (error) {
-      console.error('Error fetching sites:', error);
+      logError(error, { context: 'GET /api/sites - fetch query', clientId });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch sites' },
         { status: 500 }
@@ -41,13 +42,15 @@ export async function GET(request: Request) {
     // Extract unique sites
     const uniqueSites = [...new Set(vehicles?.map(v => v.work_site).filter(Boolean))];
 
+    logger.debug({ clientId, count: uniqueSites.length }, 'Sites fetched successfully');
+
     return NextResponse.json({
       success: true,
       sites: uniqueSites.sort(),
       count: uniqueSites.length,
     });
   } catch (error) {
-    console.error('Error in GET /api/sites:', error);
+    logError(error, { context: 'GET /api/sites - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import logger, { logError } from '@/lib/logger';
 
 // Service role client for admin operations (storage upload)
 import { createClient as createServiceClient } from '@supabase/supabase-js';
@@ -44,7 +45,12 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      logError(error, { context: 'GET /api/interventions', agentId, myInterventions });
+      throw error;
+    }
+
+    logger.debug({ count: data.length, filtered: { agentId, myInterventions } }, 'Interventions fetched');
 
     // Mapper les champs pour compatibilité frontend
     const interventions = data.map(intervention => ({
@@ -65,8 +71,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ interventions });
   } catch (error) {
-    console.error('❌ Error fetching interventions:', error);
-    console.error('📋 Full error:', JSON.stringify(error, null, 2));
+    logError(error, { context: 'GET /api/interventions - general error' });
     return NextResponse.json({ error: 'Erreur de récupération' }, { status: 500 });
   }
 }
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest) {
     // Récupérer le type d'intervention en texte
     const interventionTypeName = formData.get('type') as string;
 
-    console.log('🔍 Looking up intervention type:', interventionTypeName);
+    logger.debug({ interventionTypeName }, 'Looking up intervention type');
 
     // Chercher l'intervention_type_id correspondant
     const { data: interventionTypes, error: typeError } = await supabase
@@ -90,26 +95,26 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (typeError || !interventionTypes) {
-      console.error('❌ Intervention type not found:', interventionTypeName, typeError);
+      logError(typeError, { context: 'Intervention type lookup', interventionTypeName });
       return NextResponse.json({
         error: `Type d'intervention "${interventionTypeName}" introuvable`
       }, { status: 400 });
     }
 
-    console.log('✅ Found intervention type ID:', interventionTypes.id);
+    logger.debug({ interventionTypeId: interventionTypes.id }, 'Intervention type found');
 
     // Get authenticated agent from SSR session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error('❌ No authenticated agent:', authError?.message);
+      logError(authError, { context: 'Agent authentication' });
       return NextResponse.json({
         error: 'Agent non authentifié'
       }, { status: 401 });
     }
 
     const agentId = user.id;
-    console.log('✅ Using authenticated agent ID:', agentId);
+    logger.debug({ agentId }, 'Agent authenticated'); // agentId sera automatiquement redacted si dans le path
 
     // Helper pour convertir "null" string en null réel
     const getFormValue = (key: string): string | null => {
@@ -128,14 +133,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('📦 Metadata captured:', metadata);
+    logger.debug({ metadataKeys: Object.keys(metadata) }, 'Metadata captured');
 
     // Gérer le client_id : utiliser un client interne pour "Remplissage Cuve"
     let clientId = getFormValue('clientId');
 
     // Si pas de clientId ET que c'est un "Remplissage Cuve", créer/utiliser client interne
     if (!clientId && interventionTypeName === 'Remplissage Cuve') {
-      console.log('🏢 Remplissage Cuve détecté - recherche du client interne...');
+      logger.info({ interventionTypeName }, 'Remplissage Cuve detected - looking up internal client');
 
       // Use service role for internal operations
       const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
@@ -148,10 +153,10 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (internalClient) {
-        console.log('✅ Client interne trouvé:', internalClient.id);
+        logger.debug({ clientId: internalClient.id }, 'Internal client found');
         clientId = internalClient.id;
       } else {
-        console.log('📝 Création du client interne...');
+        logger.info('Creating internal client');
         const { data: newClient, error: createError } = await serviceClient
           .from('clients')
           .insert([{
@@ -163,11 +168,11 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (createError) {
-          console.error('❌ Erreur création client interne:', createError);
+          logError(createError, { context: 'Create internal client' });
           throw new Error('Impossible de créer le client interne');
         }
 
-        console.log('✅ Client interne créé:', newClient.id);
+        logger.info({ clientId: newClient.id }, 'Internal client created');
         clientId = newClient.id;
       }
     }
@@ -201,7 +206,7 @@ export async function POST(request: NextRequest) {
       gps_captured_at: gpsCapturedAt || null,
     };
 
-    console.log('🔍 Attempting to insert:', interventionData);
+    logger.debug({ interventionType: interventionTypeName, hasGPS: !!latitude }, 'Attempting intervention insert');
 
     // Use service role client for INSERT (bypasses RLS)
     const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
@@ -214,24 +219,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('❌ Supabase insert error:', error);
-      console.error('📋 Error details:', JSON.stringify(error, null, 2));
+      logError(error, { context: 'Supabase intervention insert' });
       throw error;
     }
 
-    console.log('✅ Insert successful:', data);
+    logger.info({ interventionId: data.id }, 'Intervention insert successful');
 
     // Upload des photos si présentes
-    console.log('📸 Checking for photos in FormData...');
-
-    // Debug: Lister tous les champs du FormData
-    const allKeys: string[] = [];
-    for (const key of formData.keys()) {
-      allKeys.push(key);
-    }
-    console.log('📋 All FormData keys:', allKeys);
-    console.log('🔍 Photo keys found:', allKeys.filter(k => k.toLowerCase().includes('photo')));
-
     const photosAvantFiles = formData.getAll('photosAvant') as File[];
     const photosApresFiles = formData.getAll('photosApres') as File[];
     const photoManometreFiles = formData.getAll('photoManometre') as File[];
@@ -241,12 +235,16 @@ export async function POST(request: NextRequest) {
     const photosJaugesApresFiles = formData.getAll('photosJaugesApres') as File[];
     const photoTicketFiles = formData.getAll('photoTicket') as File[];
 
-    console.log(`📸 Photos Avant: ${photosAvantFiles.length} fichiers`);
-    console.log(`📸 Photos Après: ${photosApresFiles.length} fichiers`);
-    console.log(`📸 Photos Manomètre: ${photoManometreFiles.length} fichiers`);
-    console.log(`📸 Photos Jauges Avant: ${photosJaugesAvantFiles.length} fichiers`);
-    console.log(`📸 Photos Jauges Après: ${photosJaugesApresFiles.length} fichiers`);
-    console.log(`📸 Photo Ticket: ${photoTicketFiles.length} fichiers`);
+    logger.debug({
+      photoCounts: {
+        avant: photosAvantFiles.length,
+        apres: photosApresFiles.length,
+        manometre: photoManometreFiles.length,
+        jaugesAvant: photosJaugesAvantFiles.length,
+        jaugesApres: photosJaugesApresFiles.length,
+        ticket: photoTicketFiles.length,
+      }
+    }, 'Photo files received');
 
     const photosAvantUrls: string[] = [];
     const photosApresUrls: string[] = [];
@@ -258,181 +256,66 @@ export async function POST(request: NextRequest) {
     // Create service role client for storage uploads (bypasses RLS)
     const storageClient = createServiceClient(supabaseUrl, supabaseServiceKey);
 
+    // Helper function for photo upload
+    const uploadPhoto = async (photoFile: File, type: string, index: number): Promise<string | null> => {
+      if (!photoFile || photoFile.size === 0) return null;
+
+      const fileExtension = photoFile.name.split('.').pop() || 'jpg';
+      const fileName = `${data.id}/${type}-${Date.now()}-${index}.${fileExtension}`;
+
+      const { error: uploadError } = await storageClient.storage
+        .from('intervention-photos')
+        .upload(fileName, photoFile, {
+          contentType: photoFile.type || 'image/jpeg',
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        logError(uploadError, { context: 'Photo upload', type, index, fileName });
+        return null;
+      }
+
+      const { data: { publicUrl } } = storageClient.storage
+        .from('intervention-photos')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    };
+
     // Upload des photos AVANT
     for (let i = 0; i < photosAvantFiles.length; i++) {
-      const photoFile = photosAvantFiles[i];
-
-      console.log(`📸 Processing photo AVANT ${i + 1}/${photosAvantFiles.length}:`, {
-        name: photoFile?.name,
-        size: photoFile?.size,
-        type: photoFile?.type
-      });
-
-      if (photoFile && photoFile.size > 0) {
-        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${data.id}/avant-${Date.now()}-${i}.${fileExtension}`;
-
-        console.log(`⬆️ Uploading AVANT to: ${fileName}`);
-
-        const { data: uploadData, error: uploadError } = await storageClient.storage
-          .from('intervention-photos')
-          .upload(fileName, photoFile, {
-            contentType: photoFile.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
-
-        if (uploadError) {
-          console.error(`❌ Error uploading photo AVANT ${i}:`, uploadError);
-          console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
-        } else {
-          const { data: { publicUrl } } = storageClient.storage
-            .from('intervention-photos')
-            .getPublicUrl(fileName);
-
-          photosAvantUrls.push(publicUrl);
-          console.log(`✅ Photo AVANT ${i + 1} uploaded:`, publicUrl);
-        }
-      }
+      const url = await uploadPhoto(photosAvantFiles[i], 'avant', i);
+      if (url) photosAvantUrls.push(url);
     }
 
     // Upload des photos APRÈS
     for (let i = 0; i < photosApresFiles.length; i++) {
-      const photoFile = photosApresFiles[i];
-
-      console.log(`📸 Processing photo APRÈS ${i + 1}/${photosApresFiles.length}:`, {
-        name: photoFile?.name,
-        size: photoFile?.size,
-        type: photoFile?.type
-      });
-
-      if (photoFile && photoFile.size > 0) {
-        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${data.id}/apres-${Date.now()}-${i}.${fileExtension}`;
-
-        console.log(`⬆️ Uploading APRÈS to: ${fileName}`);
-
-        const { data: uploadData, error: uploadError } = await storageClient.storage
-          .from('intervention-photos')
-          .upload(fileName, photoFile, {
-            contentType: photoFile.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
-
-        if (uploadError) {
-          console.error(`❌ Error uploading photo APRÈS ${i}:`, uploadError);
-          console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
-        } else {
-          const { data: { publicUrl } } = storageClient.storage
-            .from('intervention-photos')
-            .getPublicUrl(fileName);
-
-          photosApresUrls.push(publicUrl);
-          console.log(`✅ Photo APRÈS ${i + 1} uploaded:`, publicUrl);
-        }
-      }
+      const url = await uploadPhoto(photosApresFiles[i], 'apres', i);
+      if (url) photosApresUrls.push(url);
     }
 
     // Upload des photos MANOMETRE (pour livraison carburant)
     for (let i = 0; i < photoManometreFiles.length; i++) {
-      const photoFile = photoManometreFiles[i];
-
-      console.log(`📸 Processing photo MANOMETRE ${i + 1}/${photoManometreFiles.length}:`, {
-        name: photoFile?.name,
-        size: photoFile?.size,
-        type: photoFile?.type
-      });
-
-      if (photoFile && photoFile.size > 0) {
-        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${data.id}/manometre-${Date.now()}-${i}.${fileExtension}`;
-
-        console.log(`⬆️ Uploading MANOMETRE to: ${fileName}`);
-
-        const { data: uploadData, error: uploadError } = await storageClient.storage
-          .from('intervention-photos')
-          .upload(fileName, photoFile, {
-            contentType: photoFile.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
-
-        if (uploadError) {
-          console.error(`❌ Error uploading photo MANOMETRE ${i}:`, uploadError);
-          console.error(`❌ Upload error details:`, JSON.stringify(uploadError, null, 2));
-        } else {
-          const { data: { publicUrl } } = storageClient.storage
-            .from('intervention-photos')
-            .getPublicUrl(fileName);
-
-          photoManometreUrls.push(publicUrl);
-          console.log(`✅ Photo MANOMETRE ${i + 1} uploaded:`, publicUrl);
-        }
-      }
+      const url = await uploadPhoto(photoManometreFiles[i], 'manometre', i);
+      if (url) photoManometreUrls.push(url);
     }
 
     // Upload des photos JAUGES AVANT (pour remplissage cuve)
     for (let i = 0; i < photosJaugesAvantFiles.length; i++) {
-      const photoFile = photosJaugesAvantFiles[i];
-      if (photoFile && photoFile.size > 0) {
-        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${data.id}/jauges-avant-${Date.now()}-${i}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await storageClient.storage
-          .from('intervention-photos')
-          .upload(fileName, photoFile, {
-            contentType: photoFile.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
-        if (!uploadError) {
-          const { data: { publicUrl } } = storageClient.storage
-            .from('intervention-photos')
-            .getPublicUrl(fileName);
-          photosJaugesAvantUrls.push(publicUrl);
-          console.log(`✅ Photo JAUGES AVANT ${i + 1} uploaded:`, publicUrl);
-        }
-      }
+      const url = await uploadPhoto(photosJaugesAvantFiles[i], 'jauges-avant', i);
+      if (url) photosJaugesAvantUrls.push(url);
     }
 
     // Upload des photos JAUGES APRÈS (pour remplissage cuve)
     for (let i = 0; i < photosJaugesApresFiles.length; i++) {
-      const photoFile = photosJaugesApresFiles[i];
-      if (photoFile && photoFile.size > 0) {
-        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${data.id}/jauges-apres-${Date.now()}-${i}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await storageClient.storage
-          .from('intervention-photos')
-          .upload(fileName, photoFile, {
-            contentType: photoFile.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
-        if (!uploadError) {
-          const { data: { publicUrl } } = storageClient.storage
-            .from('intervention-photos')
-            .getPublicUrl(fileName);
-          photosJaugesApresUrls.push(publicUrl);
-          console.log(`✅ Photo JAUGES APRÈS ${i + 1} uploaded:`, publicUrl);
-        }
-      }
+      const url = await uploadPhoto(photosJaugesApresFiles[i], 'jauges-apres', i);
+      if (url) photosJaugesApresUrls.push(url);
     }
 
     // Upload des photos TICKET (pour remplissage cuve)
     for (let i = 0; i < photoTicketFiles.length; i++) {
-      const photoFile = photoTicketFiles[i];
-      if (photoFile && photoFile.size > 0) {
-        const fileExtension = photoFile.name.split('.').pop() || 'jpg';
-        const fileName = `${data.id}/ticket-${Date.now()}-${i}.${fileExtension}`;
-        const { data: uploadData, error: uploadError } = await storageClient.storage
-          .from('intervention-photos')
-          .upload(fileName, photoFile, {
-            contentType: photoFile.type || 'image/jpeg',
-            cacheControl: '3600',
-          });
-        if (!uploadError) {
-          const { data: { publicUrl } } = storageClient.storage
-            .from('intervention-photos')
-            .getPublicUrl(fileName);
-          photoTicketUrls.push(publicUrl);
-          console.log(`✅ Photo TICKET ${i + 1} uploaded:`, publicUrl);
-        }
-      }
+      const url = await uploadPhoto(photoTicketFiles[i], 'ticket', i);
+      if (url) photoTicketUrls.push(url);
     }
 
     // Mettre à jour l'intervention avec les URLs des photos séparées
@@ -484,7 +367,21 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', data.id);
 
-      console.log(`✅ ${photosAvantUrls.length} AVANT + ${photosApresUrls.length} APRÈS + ${photoManometreUrls.length} MANOMETRE + ${photosJaugesAvantUrls.length} JAUGES AVANT + ${photosJaugesApresUrls.length} JAUGES APRÈS + ${photoTicketUrls.length} TICKET saved`);
+      const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
+        photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length;
+
+      logger.info({
+        interventionId: data.id,
+        photosSaved: {
+          avant: photosAvantUrls.length,
+          apres: photosApresUrls.length,
+          manometre: photoManometreUrls.length,
+          jaugesAvant: photosJaugesAvantUrls.length,
+          jaugesApres: photosJaugesApresUrls.length,
+          ticket: photoTicketUrls.length,
+          total: totalPhotos
+        }
+      }, 'Photos uploaded and metadata updated');
     }
 
     return NextResponse.json({
@@ -498,7 +395,7 @@ export async function POST(request: NextRequest) {
       photoTicketUploaded: photoTicketUrls.length
     });
   } catch (error) {
-    console.error('Error creating intervention:', error);
+    logError(error, { context: 'POST /api/interventions - general error' });
     return NextResponse.json({
       error: 'Erreur lors de la création de l\'intervention'
     }, { status: 500 });

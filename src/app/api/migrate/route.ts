@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 export async function POST() {
   try {
@@ -11,7 +12,7 @@ export async function POST() {
       auth: { persistSession: false }
     });
 
-    console.log('Applying migration...');
+    logger.info('Applying database migration...');
 
     // Execute ALTER TABLE statements using Supabase SQL
     const alterColumns = await supabase.rpc('exec', {
@@ -21,7 +22,7 @@ export async function POST() {
       `
     });
 
-    console.log('Columns added:', alterColumns);
+    logger.debug({ alterColumns }, 'Columns added');
 
     // Create indexes
     const createIndexes = await supabase.rpc('exec', {
@@ -33,7 +34,7 @@ export async function POST() {
       `
     });
 
-    console.log('Indexes created:', createIndexes);
+    logger.debug({ createIndexes }, 'Indexes created');
 
     return NextResponse.json({
       success: true,
@@ -43,7 +44,7 @@ export async function POST() {
     });
 
   } catch (error: any) {
-    console.error('Migration error:', error);
+    logError(error, { context: 'POST /api/migrate - migration error' });
 
     return NextResponse.json(
       { success: false, error: error.message, details: error },

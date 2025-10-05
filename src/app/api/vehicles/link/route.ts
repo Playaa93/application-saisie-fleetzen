@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
     const { sourceVehicleId, clientId, site } = body;
 
     if (!sourceVehicleId || !clientId || !site) {
+      logger.warn({ hasSourceVehicleId: !!sourceVehicleId, hasClientId: !!clientId, hasSite: !!site }, 'POST /api/vehicles/link - missing required fields');
       return NextResponse.json(
         { success: false, error: 'sourceVehicleId, clientId, and site are required' },
         { status: 400 }
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
       .single();
 
     if (fetchError || !sourceVehicle) {
-      console.error('Error fetching source vehicle:', fetchError);
+      logError(fetchError, { context: 'POST /api/vehicles/link - source vehicle not found', sourceVehicleId });
       return NextResponse.json(
         { success: false, error: 'Source vehicle not found' },
         { status: 404 }
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (checkError) {
-      console.error('Error checking existing link:', checkError);
+      logError(checkError, { context: 'POST /api/vehicles/link - check existing', licensePlate: sourceVehicle.license_plate });
       return NextResponse.json(
         { success: false, error: 'Failed to check existing link' },
         { status: 500 }
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
     }
 
     if (existingLink) {
+      logger.warn({ licensePlate: sourceVehicle.license_plate, clientId, site }, 'Vehicle already linked to this client/site');
       return NextResponse.json(
         { success: false, error: 'This vehicle is already linked to this client/site' },
         { status: 409 }
@@ -81,19 +84,27 @@ export async function POST(request: Request) {
       .single();
 
     if (createError) {
-      console.error('Error creating linked vehicle:', createError);
+      logError(createError, { context: 'POST /api/vehicles/link - create failed', licensePlate: sourceVehicle.license_plate });
       return NextResponse.json(
         { success: false, error: 'Failed to link vehicle' },
         { status: 500 }
       );
     }
 
+    logger.info({
+      newVehicleId: newVehicle.id,
+      sourceVehicleId,
+      licensePlate: sourceVehicle.license_plate,
+      clientId,
+      site
+    }, 'Vehicle linked successfully');
+
     return NextResponse.json({
       success: true,
       vehicle: newVehicle,
     });
   } catch (error) {
-    console.error('Error in POST /api/vehicles/link:', error);
+    logError(error, { context: 'POST /api/vehicles/link - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

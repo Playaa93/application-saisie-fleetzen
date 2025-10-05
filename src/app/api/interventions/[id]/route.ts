@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,26 +11,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log('🚀 [START] GET /api/interventions/[id]');
+  const startTime = Date.now();
 
   try {
-    console.log('📦 [STEP 1] Awaiting params...');
     const { id } = await params;
-    console.log('✅ [STEP 1] Params resolved:', { id });
+    logger.debug({ interventionId: id }, 'Fetching intervention details');
 
-    console.log('🔑 [STEP 2] Loading env vars...');
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    console.log('✅ [STEP 2] Env vars loaded:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseKey
-    });
 
-    console.log('🔌 [STEP 3] Creating Supabase client...');
     const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('✅ [STEP 3] Client created');
 
-    console.log('🔍 [STEP 4] Querying Supabase...');
     const { data, error } = await supabase
       .from('interventions')
       .select(`
@@ -63,29 +55,25 @@ export async function GET(
       .eq('id', id)
       .single();
 
-    console.log('📊 [STEP 4] Query result:', {
-      hasData: !!data,
-      hasError: !!error,
-      errorDetails: error ? { code: error.code, message: error.message } : null
-    });
-
     if (error) {
-      console.error('❌ [ERROR] Supabase error:', error);
+      logError(error, { context: 'GET /api/interventions/[id]', interventionId: id });
       return NextResponse.json({ error: 'Intervention introuvable' }, { status: 404 });
     }
 
     if (!data) {
-      console.error('❌ [ERROR] No data returned');
+      logger.warn({ interventionId: id }, 'Intervention not found');
       return NextResponse.json({ error: 'Intervention introuvable' }, { status: 404 });
     }
 
-    console.log('🔧 [STEP 5] Formatting response...');
-    console.log('📋 [DEBUG] Raw data structure:', {
-      hasInterventionTypes: !!data.intervention_types,
-      hasClients: !!data.clients,
-      hasVehicles: !!data.vehicles,
-      hasAgents: !!data.agents
-    });
+    logger.debug({
+      interventionId: id,
+      hasRelations: {
+        interventionTypes: !!data.intervention_types,
+        clients: !!data.clients,
+        vehicles: !!data.vehicles,
+        agents: !!data.agents
+      }
+    }, 'Intervention data fetched successfully');
 
     // Formater la réponse
     const intervention = {
@@ -134,14 +122,20 @@ export async function GET(
       photos: []
     };
 
-    console.log('✅ [STEP 5] Response formatted successfully');
-    console.log('🎉 [SUCCESS] Returning intervention data');
+    const duration = Date.now() - startTime;
+    logger.info({
+      interventionId: id,
+      duration,
+      hasPhotos: intervention.photos.length > 0
+    }, 'Intervention retrieved successfully');
 
     return NextResponse.json(intervention);
   } catch (error) {
-    console.error('❌❌❌ [FATAL ERROR] Unhandled exception:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    const duration = Date.now() - startTime;
+    logError(error, {
+      context: 'GET /api/interventions/[id] - unhandled exception',
+      duration
+    });
 
     return NextResponse.json({
       error: 'Erreur serveur',

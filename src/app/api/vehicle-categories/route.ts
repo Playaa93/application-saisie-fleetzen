@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
       .not('vehicle_category', 'is', null);
 
     if (error) {
-      console.error('Error fetching vehicle categories:', error);
+      logError(error, { context: 'GET /api/vehicle-categories - fetch query', clientId, site });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch vehicle categories' },
         { status: 500 }
@@ -43,13 +44,15 @@ export async function GET(request: Request) {
     // Extract unique categories
     const uniqueCategories = [...new Set(vehicles?.map(v => v.vehicle_category).filter(Boolean))];
 
+    logger.debug({ clientId, site, count: uniqueCategories.length }, 'Vehicle categories fetched successfully');
+
     return NextResponse.json({
       success: true,
       categories: uniqueCategories.sort(),
       count: uniqueCategories.length,
     });
   } catch (error) {
-    console.error('Error in GET /api/vehicle-categories:', error);
+    logError(error, { context: 'GET /api/vehicle-categories - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

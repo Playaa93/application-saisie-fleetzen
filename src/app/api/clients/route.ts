@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger, { logError } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -29,12 +30,14 @@ export async function GET() {
       .order('name');
 
     if (error) {
-      console.error('Error fetching clients:', error);
+      logError(error, { context: 'GET /api/clients - fetch query' });
       return NextResponse.json(
         { success: false, error: 'Failed to fetch clients' },
         { status: 500 }
       );
     }
+
+    logger.debug({ count: clients?.length || 0 }, 'Clients fetched successfully');
 
     return NextResponse.json({
       success: true,
@@ -42,7 +45,7 @@ export async function GET() {
       count: clients?.length || 0,
     });
   } catch (error) {
-    console.error('Error in GET /api/clients:', error);
+    logError(error, { context: 'GET /api/clients - unhandled exception' });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
