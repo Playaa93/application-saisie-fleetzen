@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PhotoUploadMultiple from '@/components/PhotoUploadMultiple';
 import SearchableCombobox from '@/components/SearchableCombobox';
 import { AddVehicleDialog } from '@/components/AddVehicleDialog';
@@ -44,6 +44,11 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   const [showAddVehicleDialog, setShowAddVehicleDialog] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [contextApplied, setContextApplied] = useState(false);
+
+  // Refs pour détecter les changements manuels vs initialisation contexte
+  const prevClientIdRef = useRef<string | null>(null);
+  const prevSiteRef = useRef<string>('');
+  const prevCategoryRef = useRef<string>('');
 
   // Synchroniser data avec formData seulement au changement de step
   useEffect(() => {
@@ -105,6 +110,9 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   // CASCADE 1: Charger les sites quand un client est sélectionné
   useEffect(() => {
     if (data.clientId) {
+      // Détecter si c'est un CHANGEMENT de client (pas le premier load)
+      const isClientChange = prevClientIdRef.current && prevClientIdRef.current !== data.clientId;
+
       setLoadingSites(true);
       const fetchSites = async () => {
         try {
@@ -121,19 +129,30 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
         }
       };
       fetchSites();
-      setData(prev => ({ ...prev, siteTravail: '', siteAutre: '', typeVehicule: '', vehicleId: null }));
-      setCategories([]);
-      setVehicles([]);
+
+      // Reset UNIQUEMENT si changement manuel (pas lors du contexte initial)
+      if (isClientChange) {
+        setData(prev => ({ ...prev, siteTravail: '', siteAutre: '', typeVehicule: '', vehicleId: null }));
+        setCategories([]);
+        setVehicles([]);
+      }
+
+      // Mettre à jour le ref
+      prevClientIdRef.current = data.clientId;
     } else {
       setSites([]);
       setCategories([]);
       setVehicles([]);
+      prevClientIdRef.current = null;
     }
   }, [data.clientId]);
 
   // CASCADE 2: Charger les catégories quand client + site sont sélectionnés
   useEffect(() => {
     if (data.clientId && data.siteTravail && data.siteTravail !== 'Autre') {
+      // Détecter si c'est un CHANGEMENT de site (pas le premier load)
+      const isSiteChange = prevSiteRef.current && prevSiteRef.current !== data.siteTravail;
+
       setLoadingCategories(true);
       const fetchCategories = async () => {
         try {
@@ -153,17 +172,28 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
         }
       };
       fetchCategories();
-      setData(prev => ({ ...prev, typeVehicule: '', vehicleId: null }));
-      setVehicles([]);
+
+      // Reset UNIQUEMENT si changement manuel (pas lors du contexte initial)
+      if (isSiteChange) {
+        setData(prev => ({ ...prev, typeVehicule: '', vehicleId: null }));
+        setVehicles([]);
+      }
+
+      // Mettre à jour le ref
+      prevSiteRef.current = data.siteTravail;
     } else {
       setCategories([]);
       setVehicles([]);
+      prevSiteRef.current = '';
     }
   }, [data.clientId, data.siteTravail]);
 
   // CASCADE 3: Charger les véhicules quand client + site + catégorie sont sélectionnés
   useEffect(() => {
     if (data.clientId && data.siteTravail && data.siteTravail !== 'Autre' && data.typeVehicule && data.typeVehicule !== 'Autre') {
+      // Détecter si c'est un CHANGEMENT de catégorie (pas le premier load)
+      const isCategoryChange = prevCategoryRef.current && prevCategoryRef.current !== data.typeVehicule;
+
       setLoadingVehicles(true);
       const fetchVehicles = async () => {
         try {
@@ -180,9 +210,17 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
         }
       };
       fetchVehicles();
-      setData(prev => ({ ...prev, vehicleId: null, vehicle: '' }));
+
+      // Reset UNIQUEMENT si changement manuel (pas lors du contexte initial)
+      if (isCategoryChange) {
+        setData(prev => ({ ...prev, vehicleId: null, vehicle: '' }));
+      }
+
+      // Mettre à jour le ref
+      prevCategoryRef.current = data.typeVehicule;
     } else {
       setVehicles([]);
+      prevCategoryRef.current = '';
     }
   }, [data.clientId, data.siteTravail, data.typeVehicule]);
 
