@@ -5,10 +5,11 @@ import { BottomNav } from '@/components/mobile/BottomNav';
 import { CompletionCard } from '@/components/dashboard/CompletionCard';
 import { TaskList } from '@/components/dashboard/TaskList';
 import { DraftsListHome } from '@/components/dashboard/DraftsListHome';
+import { LastInterventionCard } from '@/components/dashboard/LastInterventionCard';
 import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { Plus, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getDashboardStats } from '@/lib/dal';
+import { getDashboardStats, getLastCompletedIntervention } from '@/lib/dal';
 
 /**
  * Homepage - Server Component (Next.js 15 Best Practice)
@@ -45,6 +46,9 @@ export default async function HomePage() {
   // Fetch dashboard stats with RLS verification
   const { stats, tasksToday } = await getDashboardStats();
 
+  // Fetch last completed intervention
+  const lastIntervention = await getLastCompletedIntervention();
+
   return (
     <>
       <div className="flex-1 p-4 space-y-4 max-w-6xl mx-auto pb-20">
@@ -80,6 +84,9 @@ export default async function HomePage() {
 
         {/* À faire maintenant - receives pre-authenticated data */}
         <TaskList tasks={tasksToday} />
+
+        {/* Dernière intervention - quick resume with context */}
+        <LastInterventionCard intervention={lastIntervention} />
 
         {/* Brouillons (drafts from IndexedDB) - client-side only */}
         <DraftsListHome />

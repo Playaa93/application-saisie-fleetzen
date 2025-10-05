@@ -466,11 +466,20 @@ export default function NouvelleInterventionPage() {
         // Haptic feedback succès
         triggerHaptic(HapticPattern.SUCCESS);
 
-        toast.success('Intervention enregistrée !', {
-          description: 'Redirection vers l\'accueil...',
-          duration: 1500
+        toast.success('✅ Intervention enregistrée !', {
+          action: {
+            label: '➕ Nouvelle similaire',
+            onClick: () => {
+              // Context already saved line 455 - just navigate
+              router.push('/nouvelle-intervention');
+            }
+          },
+          description: 'Retour à l\'accueil dans 3s...',
+          duration: 3000
         });
-        setTimeout(() => router.push('/'), 1500);
+
+        // Delayed redirect to allow time to click "Nouvelle similaire"
+        setTimeout(() => router.push('/'), 3000);
       } else {
         const errorMessage = responseData?.error || `Erreur ${response.status}`;
 
