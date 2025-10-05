@@ -245,10 +245,59 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
 
     const selectedClient = clients.find(c => c.id === data.clientId);
 
+    // Validation avant de passer à l'étape suivante
+    const validateClient = () => {
+      const newErrors: Record<string, string> = {};
+
+      if (!data.client) {
+        newErrors.client = 'Client requis';
+      }
+
+      if (data.client === 'Autre') {
+        if (!data.clientAutre?.trim()) {
+          newErrors.clientAutre = 'Veuillez préciser le nom du client';
+        }
+        if (!data.siteTravail?.trim()) {
+          newErrors.siteTravail = 'Site de travail requis';
+        }
+        if (!data.typeVehicule?.trim()) {
+          newErrors.typeVehicule = 'Type de véhicule requis';
+        }
+        if (!data.vehicle?.trim()) {
+          newErrors.vehicle = 'Immatriculation requise';
+        }
+      } else if (data.clientId) {
+        // Client existant (pas "Autre")
+        if (!data.siteTravail) {
+          newErrors.siteTravail = 'Site de travail requis';
+        }
+        if (data.siteTravail === 'Autre' && !data.siteAutre?.trim()) {
+          newErrors.siteAutre = 'Veuillez préciser le site';
+        }
+        if (data.siteTravail && data.siteTravail !== 'Autre' && !data.typeVehicule) {
+          newErrors.typeVehicule = 'Type de véhicule requis';
+        }
+        if (data.typeVehicule && data.typeVehicule !== 'Autre' && !data.vehicle) {
+          newErrors.vehicle = 'Véhicule requis';
+        }
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNext = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (validateClient()) {
+        setErrors({});
+        onNext(data);
+      }
+    };
+
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Renseignement clients</h2>
-        <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
+        <form onSubmit={handleNext} className="space-y-6">
           <SearchableCombobox
             label="Client"
             options={clientOptions}
@@ -266,19 +315,99 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
             required
           />
           {data.client === 'Autre' && (
-            <div>
-              <label className="block text-sm font-medium mb-2">Précisez le client *</label>
-              <input
-                type="text"
-                value={data.clientAutre || ''}
-                onChange={(e) => setData(prev => ({ ...prev, clientAutre: e.target.value }))}
-                className="w-full p-3 border rounded-lg"
-                placeholder="Nom du client"
-                required
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-2">Précisez le client *</label>
+                <input
+                  type="text"
+                  value={data.clientAutre || ''}
+                  onChange={(e) => {
+                    setData(prev => ({ ...prev, clientAutre: e.target.value }));
+                    if (errors.clientAutre) {
+                      setErrors({ ...errors, clientAutre: '' });
+                    }
+                  }}
+                  className={`w-full p-3 border rounded-lg ${errors.clientAutre ? 'border-red-500' : ''}`}
+                  placeholder="Nom du client"
+                  required
+                />
+                {errors.clientAutre && (
+                  <p className="text-xs text-red-500 mt-1">{errors.clientAutre}</p>
+                )}
+              </div>
+
+              {/* ⚠️ SAISIE MANUELLE pour client "Autre" */}
+              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                  ⚠️ Client "Autre" : veuillez saisir manuellement les informations. Pour bénéficier de la saisie assistée, ajoutez ce client dans l'administration.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Site de travail *</label>
+                    <input
+                      type="text"
+                      value={data.siteTravail || ''}
+                      onChange={(e) => {
+                        setData(prev => ({ ...prev, siteTravail: e.target.value }));
+                        if (errors.siteTravail) {
+                          setErrors({ ...errors, siteTravail: '' });
+                        }
+                      }}
+                      className={`w-full p-3 border rounded-lg ${errors.siteTravail ? 'border-red-500' : ''}`}
+                      placeholder="Nom du site"
+                      required
+                    />
+                    {errors.siteTravail && (
+                      <p className="text-xs text-red-500 mt-1">{errors.siteTravail}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Type de véhicule *</label>
+                    <input
+                      type="text"
+                      value={data.typeVehicule || ''}
+                      onChange={(e) => {
+                        setData(prev => ({ ...prev, typeVehicule: e.target.value }));
+                        if (errors.typeVehicule) {
+                          setErrors({ ...errors, typeVehicule: '' });
+                        }
+                      }}
+                      className={`w-full p-3 border rounded-lg ${errors.typeVehicule ? 'border-red-500' : ''}`}
+                      placeholder="Ex: Camion, VL, Remorque..."
+                      required
+                    />
+                    {errors.typeVehicule && (
+                      <p className="text-xs text-red-500 mt-1">{errors.typeVehicule}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Immatriculation *</label>
+                    <input
+                      type="text"
+                      value={data.vehicle || ''}
+                      onChange={(e) => {
+                        setData(prev => ({ ...prev, vehicle: e.target.value }));
+                        if (errors.vehicle) {
+                          setErrors({ ...errors, vehicle: '' });
+                        }
+                      }}
+                      className={`w-full p-3 border rounded-lg ${errors.vehicle ? 'border-red-500' : ''}`}
+                      placeholder="Ex: AA-123-BB"
+                      required
+                    />
+                    {errors.vehicle && (
+                      <p className="text-xs text-red-500 mt-1">{errors.vehicle}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
+          {/* SITE - SEULEMENT pour clients existants */}
           {data.clientId && (
             <SearchableCombobox
               label="Site de travail"
