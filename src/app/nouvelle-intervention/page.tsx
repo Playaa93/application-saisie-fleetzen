@@ -423,7 +423,7 @@ export default function NouvelleInterventionPage() {
         triggerHaptic(HapticPattern.SUCCESS);
 
         alert('✅ Intervention enregistrée avec succès !');
-        router.push('/interventions');
+        router.push('/');
       } else {
         const errorMessage = responseData?.error || `Erreur ${response.status}`;
 

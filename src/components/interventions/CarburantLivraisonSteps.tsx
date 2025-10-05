@@ -48,7 +48,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
   useEffect(() => {
     console.log('📝 Syncing formData to data on step change', { formData, currentStep });
     setData(prevData => ({ ...prevData, ...formData }));
-  }, [currentStep]); // Seulement quand l'étape change, pas quand formData change
+  }, [currentStep]);
 
   // Charger les clients depuis Supabase
   useEffect(() => {
@@ -108,7 +108,6 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
           const response = await fetch(`/api/vehicle-categories?clientId=${data.clientId}&site=${data.siteTravail}`);
           const result = await response.json();
           if (result.success) {
-            // Capitaliser la première lettre de chaque catégorie
             const capitalizedCategories = result.categories.map((cat: string) =>
               cat.charAt(0).toUpperCase() + cat.slice(1)
             );
@@ -155,23 +154,19 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
     }
   }, [data.clientId, data.siteTravail, data.typeVehicule]);
 
-  // Étape 1: Renseignement clients (CASCADE COMPLET)
+  // Étape 1: Renseignement clients
   if (currentStep === 1) {
     const clientOptions = [...clients.map(c => `${c.name} (${c.code})`), 'Autre'];
-
-    // Format spécial pour Intermarché : afficher numéro pour les remorques
     const isIntermarche = data.clientId === 'bfa6a081-34bf-4b8c-a425-e6b681a40355';
     const vehicleOptions = [
       ...vehicles.map(v => {
         const vehicleType = v.metadata?.vehicle_type || '';
         const numero = v.metadata?.numero;
 
-        // Pour Intermarché + Remorque avec numéro : afficher "Numéro (Type)"
         if (isIntermarche && v.vehicle_category === 'remorque' && numero) {
           return vehicleType ? `${numero} (${vehicleType})` : numero;
         }
 
-        // Pour tous les autres : afficher "Immatriculation (Type)"
         return vehicleType ? `${v.license_plate} (${vehicleType})` : v.license_plate;
       }),
       'Autre'
@@ -183,7 +178,6 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Renseignement clients</h2>
         <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
-          {/* 1. CLIENT */}
           <SearchableCombobox
             label="Client"
             options={clientOptions}
@@ -214,7 +208,6 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
             </div>
           )}
 
-          {/* 2. SITE (filtré par client) */}
           {data.clientId && (
             <SearchableCombobox
               label="Site de travail"
@@ -240,7 +233,6 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
             </div>
           )}
 
-          {/* 3. CATÉGORIE (filtrée par client + site) */}
           {data.clientId && data.siteTravail && data.siteTravail !== 'Autre' && (
             <SearchableCombobox
               label="Type de véhicule"
@@ -253,7 +245,6 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
             />
           )}
 
-          {/* 4. VÉHICULE (filtré par client + site + catégorie) + OPTION "AUTRE" */}
           {data.clientId && data.siteTravail && data.siteTravail !== 'Autre' && data.typeVehicule && data.typeVehicule !== 'Autre' && (
             <div>
               <SearchableCombobox
@@ -294,7 +285,6 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
           </div>
         </form>
 
-        {/* Modal pour ajouter un véhicule */}
         {selectedClient && data.siteTravail && data.siteTravail !== 'Autre' && data.typeVehicule && data.typeVehicule !== 'Autre' && (
           <AddVehicleDialog
             open={showAddVehicleDialog}
@@ -329,10 +319,70 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
     );
   }
 
-  // Étape 2: Carburant livré
+  // Étape 2: Photo compteur AVANT
   if (currentStep === 2) {
+    const validatePhotoAvant = () => {
+      const newErrors: Record<string, string> = {};
+
+      if (!data.photoCompteurAvant || data.photoCompteurAvant.length === 0) {
+        newErrors.photoCompteurAvant = 'Au moins 1 photo du compteur avant requise';
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNext = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (validatePhotoAvant()) {
+        setErrors({});
+        onNext(data);
+      }
+    };
+
+    const isValid = !data.photoCompteurAvant || data.photoCompteurAvant.length === 0;
+
+    return (
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
+        <h2 className="text-2xl font-bold mb-6">Photo compteur AVANT remplissage</h2>
+        <form onSubmit={handleNext} className="space-y-6">
+          <PhotoUploadMultiple
+            label="Photo compteur véhicule AVANT"
+            helperText="Prenez une photo de la jauge du compteur avant le remplissage"
+            maxFiles={5}
+            onChange={(files) => {
+              setData({ ...data, photoCompteurAvant: files });
+              if (files.length > 0 && errors.photoCompteurAvant) {
+                setErrors({ ...errors, photoCompteurAvant: '' });
+              }
+            }}
+            value={data.photoCompteurAvant}
+            required
+            error={errors.photoCompteurAvant}
+          />
+          <div className="flex gap-4">
+            <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
+            <button
+              type="submit"
+              className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isValid}
+            >
+              Suivant →
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // Étape 3: Carburant livré
+  if (currentStep === 3) {
     const validateCarburant = () => {
       const newErrors: Record<string, string> = {};
+
+      if (!data.typeCarburant) {
+        newErrors.typeCarburant = 'Type de carburant requis';
+      }
 
       if (!data.photoManometre || data.photoManometre.length === 0) {
         newErrors.photoManometre = 'Photo du manomètre requise';
@@ -354,30 +404,56 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
       }
     };
 
-    const isValid = (!data.photoManometre || data.photoManometre.length === 0) || !data.quantiteLivree || parseFloat(data.quantiteLivree) <= 0;
+    const isValid = !data.typeCarburant || (!data.photoManometre || data.photoManometre.length === 0) || !data.quantiteLivree || parseFloat(data.quantiteLivree) <= 0;
 
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Carburant livré</h2>
         <form onSubmit={handleNext} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Type de carburant *</label>
+            <label className="block text-sm font-medium mb-2">
+              Type de carburant <span className="text-red-500">*</span>
+            </label>
             <div className="space-y-2">
               {['Diesel', 'AdBlue', 'GNR'].map(type => (
-                <label key={type} className="flex items-center p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
+                <label
+                  key={type}
+                  className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition ${
+                    data.typeCarburant === type
+                      ? 'border-fleetzen-teal bg-fleetzen-teal/5'
+                      : 'border-border hover:bg-accent'
+                  }`}
+                >
                   <input
-                    type="checkbox"
-                    checked={data.carburant?.[type] || false}
-                    onChange={(e) => setData({ ...data, carburant: { ...data.carburant, [type]: e.target.checked } })}
+                    type="radio"
+                    name="typeCarburant"
+                    value={type}
+                    checked={data.typeCarburant === type}
+                    onChange={(e) => {
+                      setData({ ...data, typeCarburant: e.target.value });
+                      if (errors.typeCarburant) {
+                        setErrors({ ...errors, typeCarburant: '' });
+                      }
+                    }}
                     className="mr-3"
                   />
-                  <span>{type}</span>
+                  <span className="font-medium">{type}</span>
+                  {data.typeCarburant === type && (
+                    <svg className="w-5 h-5 ml-auto text-fleetzen-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </label>
               ))}
             </div>
+            {errors.typeCarburant && (
+              <p className="text-xs text-red-500 mt-1">{errors.typeCarburant}</p>
+            )}
           </div>
+
           <PhotoUploadMultiple
             label="Photo du manomètre de la cuve"
+            helperText="Photo montrant la quantité livrée sur le manomètre"
             maxFiles={1}
             onChange={(files) => {
               setData({ ...data, photoManometre: files });
@@ -389,6 +465,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
             required
             error={errors.photoManometre}
           />
+
           <div>
             <label className="block text-sm font-medium mb-2">
               Quantité livrée (L) <span className="text-red-500">*</span>
@@ -410,6 +487,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
               <p className="text-xs text-red-500 mt-1">{errors.quantiteLivree}</p>
             )}
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-2">Kilométrage du tracteur / porteur *</label>
             <input
@@ -421,6 +499,7 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
               required
             />
           </div>
+
           <div className="flex gap-4">
             <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
             <button
@@ -436,51 +515,86 @@ export default function CarburantLivraisonSteps({ currentStep, formData, onNext,
     );
   }
 
-  // Étape 3: Photos
-  if (currentStep === 3) {
+  // Étape 4: Photo compteur APRÈS
+  if (currentStep === 4) {
+    const validatePhotoApres = () => {
+      const newErrors: Record<string, string> = {};
+
+      if (!data.photoCompteurApres || data.photoCompteurApres.length === 0) {
+        newErrors.photoCompteurApres = 'Au moins 1 photo du compteur après requise';
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleNext = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (validatePhotoApres()) {
+        setErrors({});
+        onNext(data);
+      }
+    };
+
+    const isValid = !data.photoCompteurApres || data.photoCompteurApres.length === 0;
+
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
-        <h2 className="text-2xl font-bold mb-6">Photos</h2>
-        <form onSubmit={(e) => { e.preventDefault(); onNext(data); }} className="space-y-6">
+        <h2 className="text-2xl font-bold mb-6">Photo compteur APRÈS remplissage</h2>
+        <form onSubmit={handleNext} className="space-y-6">
           <PhotoUploadMultiple
-            label="Photo avant"
-            helperText="Si remplissage: photo de la jauge"
+            label="Photo compteur véhicule APRÈS"
+            helperText="Prenez une photo de la jauge du compteur après le remplissage"
             maxFiles={5}
-            onChange={(files) => setData(prevData => ({ ...prevData, photosAvant: files }))}
-            value={data.photosAvant}
-          />
-          <PhotoUploadMultiple
-            label="Photo après"
-            helperText="Si remplissage: photo de la jauge"
-            maxFiles={5}
-            onChange={(files) => setData(prevData => ({ ...prevData, photosApres: files }))}
-            value={data.photosApres}
+            onChange={(files) => {
+              setData({ ...data, photoCompteurApres: files });
+              if (files.length > 0 && errors.photoCompteurApres) {
+                setErrors({ ...errors, photoCompteurApres: '' });
+              }
+            }}
+            value={data.photoCompteurApres}
+            required
+            error={errors.photoCompteurApres}
           />
           <div className="flex gap-4">
             <button type="button" onClick={onPrevious} className="px-6 py-3 border rounded-lg">← Retour</button>
-            <button type="submit" className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark">Suivant →</button>
+            <button
+              type="submit"
+              className="flex-1 bg-fleetzen-teal text-white py-3 rounded-lg hover:bg-fleetzen-teal-dark disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isValid}
+            >
+              Suivant →
+            </button>
           </div>
         </form>
       </div>
     );
   }
 
-  // Étape 4: Validation
-  if (currentStep === 4) {
+  // Étape 5: Validation
+  if (currentStep === 5) {
     return (
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-6">Commentaires et validation</h2>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(data); }} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Commentaires (optionnel)</label>
-            <textarea value={data.commentaires || ''} onChange={(e) => setData({ ...data, commentaires: e.target.value })} className="w-full p-3 border rounded-lg" rows={4} placeholder="Observations, remarques..." />
+            <textarea
+              value={data.commentaires || ''}
+              onChange={(e) => setData({ ...data, commentaires: e.target.value })}
+              className="w-full p-3 border rounded-lg"
+              rows={4}
+              placeholder="Observations, remarques..."
+            />
           </div>
           <div className="bg-fleetzen-teal/10 p-4 rounded-lg">
             <h3 className="font-semibold mb-2">Récapitulatif</h3>
             <ul className="text-sm space-y-1">
               <li>• Client: {data.client}</li>
+              <li>• Véhicule: {data.vehicle}</li>
+              <li>• Type carburant: {data.typeCarburant}</li>
               <li>• Quantité: {data.quantiteLivree} L</li>
-              <li>• Photos: {(data.photosAvant?.length || 0) + (data.photosApres?.length || 0) + (data.photoManometre?.length || 0)} fichiers</li>
+              <li>• Photos: {(data.photoCompteurAvant?.length || 0) + (data.photoManometre?.length || 0) + (data.photoCompteurApres?.length || 0)} fichiers</li>
             </ul>
           </div>
           <div className="flex gap-4">

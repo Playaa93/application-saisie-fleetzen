@@ -21,6 +21,10 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
     const validateCuve = () => {
       const newErrors: Record<string, string> = {};
 
+      if (!data.typeCarburant) {
+        newErrors.typeCarburant = 'Type de carburant requis';
+      }
+
       if (!data.photosJaugesAvant || data.photosJaugesAvant.length === 0) {
         newErrors.photosJaugesAvant = 'Au moins 1 photo des jauges avant requise';
       }
@@ -54,6 +58,7 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
     };
 
     const isValid =
+      !data.typeCarburant ||
       (!data.photosJaugesAvant || data.photosJaugesAvant.length === 0) ||
       (!data.photoManometre || data.photoManometre.length === 0) ||
       (!data.photosJaugesApres || data.photosJaugesApres.length === 0) ||
@@ -64,20 +69,44 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
         <h2 className="text-2xl font-bold mb-6">Remplissage de la cuve</h2>
         <form onSubmit={handleNext} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Carburant chargé *</label>
+            <label className="block text-sm font-medium mb-2">
+              Type de carburant <span className="text-red-500">*</span>
+            </label>
             <div className="space-y-2">
               {['Diesel', 'AdBlue', 'GNR'].map(type => (
-                <label key={type} className="flex items-center p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
+                <label
+                  key={type}
+                  className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition ${
+                    data.typeCarburant === type
+                      ? 'border-fleetzen-teal bg-fleetzen-teal/5'
+                      : 'border-border hover:bg-accent'
+                  }`}
+                >
                   <input
-                    type="checkbox"
-                    checked={data.carburant?.[type] || false}
-                    onChange={(e) => setData({ ...data, carburant: { ...data.carburant, [type]: e.target.checked } })}
+                    type="radio"
+                    name="typeCarburant"
+                    value={type}
+                    checked={data.typeCarburant === type}
+                    onChange={(e) => {
+                      setData({ ...data, typeCarburant: e.target.value });
+                      if (errors.typeCarburant) {
+                        setErrors({ ...errors, typeCarburant: '' });
+                      }
+                    }}
                     className="mr-3"
                   />
-                  <span>{type}</span>
+                  <span className="font-medium">{type}</span>
+                  {data.typeCarburant === type && (
+                    <svg className="w-5 h-5 ml-auto text-fleetzen-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </label>
               ))}
             </div>
+            {errors.typeCarburant && (
+              <p className="text-xs text-red-500 mt-1">{errors.typeCarburant}</p>
+            )}
           </div>
 
           <PhotoUploadMultiple
@@ -214,6 +243,7 @@ export default function CarburantCuveSteps({ currentStep, formData, onNext, onPr
           <div className="bg-fleetzen-teal/10 p-4 rounded-lg">
             <h3 className="font-semibold mb-2">Récapitulatif</h3>
             <ul className="text-sm space-y-1">
+              <li>• Type carburant: {data.typeCarburant}</li>
               <li>• Quantité chargée: {data.quantiteChargee} L</li>
               <li>• Prix au litre: {data.prixLitre} € TTC</li>
               <li>• Total photos: {
