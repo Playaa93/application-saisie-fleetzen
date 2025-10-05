@@ -3,12 +3,13 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { saveDraft, getDraft, deleteDraft, savePhotoBlobs, getPhotoBlobs, deletePhotoBlobs, type DraftData } from '@/lib/indexedDB';
+import { InterventionFormData } from '@/types/intervention';
 
 /**
  * Hook to auto-save form drafts (NO AUTO-RESTORE)
  * PWA-compatible persistent storage with photo support
  */
-export function useFormDraft<T = any>(
+export function useFormDraft<T extends InterventionFormData = InterventionFormData>(
   draftId: string,
   typePrestation: string,
   formData: T,
@@ -32,8 +33,8 @@ export function useFormDraft<T = any>(
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         // Separate photos from formData
-        const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'];
-        const formDataCopy: any = { ...formData };
+        const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'] as const;
+        const formDataCopy: T = { ...formData };
 
         // Save photos separately and remove from formData copy
         for (const field of photoFields) {

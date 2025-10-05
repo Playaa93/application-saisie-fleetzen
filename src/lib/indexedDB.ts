@@ -8,10 +8,12 @@ const DB_VERSION = 2; // Upgraded for photo-blobs store
 const STORE_NAME = 'interventions';
 const PHOTO_STORE_NAME = 'photo-blobs';
 
+import { InterventionFormData } from '@/types/intervention';
+
 export interface DraftData {
   id: string;
   typePrestation: string;
-  formData: any;
+  formData: InterventionFormData;
   currentStep: number;
   timestamp: number;
 }

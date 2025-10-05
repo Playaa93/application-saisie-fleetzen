@@ -66,6 +66,17 @@ export async function GET(request: NextRequest) {
       query = query.eq('agent_id', currentUserId);
     }
 
+    // Cursor-based pagination (infinite scroll)
+    const { cursor, limit = 20 } = validatedQuery;
+
+    // Si cursor fourni, récupérer items APRÈS ce timestamp
+    if (cursor) {
+      query = query.lt('created_at', cursor);
+    }
+
+    // Limiter résultats + 1 pour détecter hasMore
+    query = query.limit(limit + 1);
+
     const { data, error } = await query;
 
     if (error) {
@@ -74,14 +85,25 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime;
+
+    // Détecter s'il y a plus de résultats (on a demandé limit + 1)
+    const hasMore = data.length > limit;
+    const items = hasMore ? data.slice(0, limit) : data;
+
+    // Curseur pour prochaine page = created_at du dernier item
+    const nextCursor = items.length > 0 ? items[items.length - 1].created_at : null;
+
     logger.info({
-      count: data.length,
+      count: items.length,
+      hasMore,
+      cursor,
+      nextCursor,
       filtered: { agentId, myInterventions },
       duration
-    }, 'Interventions fetched');
+    }, 'Interventions fetched (cursor-based)');
 
     // Mapper les champs pour compatibilité frontend
-    const interventions = data.map(intervention => ({
+    const interventions = items.map(intervention => ({
       id: intervention.id,
       type: intervention.intervention_types?.name || '',
       client: intervention.clients?.name || '',
@@ -97,7 +119,15 @@ export async function GET(request: NextRequest) {
       photos: [] // Pas encore implémenté
     }));
 
-    return NextResponse.json({ interventions });
+    return NextResponse.json({
+      interventions,
+      pagination: {
+        cursor: nextCursor, // Pour infinite scroll
+        hasMore,
+        limit,
+        count: items.length,
+      }
+    });
   } catch (error) {
     const duration = Date.now() - startTime;
     logError(error, { context: 'GET /api/interventions - general error', duration });
@@ -154,7 +184,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Extraire TOUTES les données du formulaire pour les métadonnées
-    const metadata: Record<string, any> = {};
+    const metadata: Record<string, unknown> = {};
     const excludedKeys = ['type', 'clientId', 'vehicleId', 'notes', 'client', 'vehicule'];
 
     for (const [key, value] of formData.entries()) {

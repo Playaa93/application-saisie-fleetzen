@@ -18,6 +18,7 @@ import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { saveDraft, savePhotoBlobs, listDrafts, type DraftData } from '@/lib/indexedDB';
 import { triggerHaptic, HapticPattern } from '@/utils/haptics';
+import { InterventionFormData } from '@/types/intervention';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +35,7 @@ export default function NouvelleInterventionPage() {
   const [showDraftsList, setShowDraftsList] = useState(true); // Show drafts list first
   const [currentStep, setCurrentStep] = useState(1);
   const [typePrestation, setTypePrestation] = useState<string | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Partial<InterventionFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false); // Loading state for manual save
   const [gpsData, setGpsData] = useState<GeolocationData | null>(null);
@@ -104,8 +105,8 @@ export default function NouvelleInterventionPage() {
       setIsSaving(true);
 
       // Prepare draft data (clone formData to separate photos)
-      const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'];
-      const formDataCopy: any = { ...formData };
+      const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'] as const;
+      const formDataCopy: Partial<InterventionFormData> = { ...formData };
 
       // Save photos as Blobs
       for (const field of photoFields) {
@@ -229,7 +230,7 @@ export default function NouvelleInterventionPage() {
     return [];
   };
 
-  const handleNext = (data: any) => {
+  const handleNext = (data: Partial<InterventionFormData>) => {
     setFormData({ ...formData, ...data });
     setCurrentStep(currentStep + 1);
   };
@@ -238,7 +239,7 @@ export default function NouvelleInterventionPage() {
     setCurrentStep(currentStep - 1);
   };
 
-  const handleSubmit = async (finalData: any) => {
+  const handleSubmit = async (finalData: Partial<InterventionFormData>) => {
     // Log début de soumission (avant toute validation)
     console.log('🚀 handleSubmit called', {
       typePrestation,

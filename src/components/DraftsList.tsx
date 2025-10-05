@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { listDrafts, deleteDraft, deletePhotoBlobs, type DraftData } from '@/lib/indexedDB';
 import { Trash2, PlayCircle, Clock, FileText, Image as ImageIcon, Truck } from 'lucide-react';
+import { InterventionFormData } from '@/types/intervention';
 
 interface DraftsListProps {
   onResumeDraft: (draft: DraftData) => void;
@@ -92,12 +93,13 @@ export default function DraftsList({ onResumeDraft, onStartNew }: DraftsListProp
     return "à l'instant";
   };
 
-  const countPhotos = (formData: any) => {
+  const countPhotos = (formData: InterventionFormData) => {
     let count = 0;
-    const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'];
+    const photoFields = ['photosAvant', 'photosApres', 'photoManometre', 'photosJaugesAvant', 'photosJaugesApres', 'photoTicket'] as const;
     photoFields.forEach(field => {
-      if (Array.isArray(formData[field])) {
-        count += formData[field].length;
+      const value = formData[field];
+      if (Array.isArray(value)) {
+        count += value.length;
       }
     });
     return count;

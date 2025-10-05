@@ -7,7 +7,7 @@ export interface ErrorLog {
   timestamp: string;
   type: 'api_error' | 'validation_error' | 'network_error' | 'unknown';
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   url?: string;
   statusCode?: number;
   userAgent: string;
@@ -34,7 +34,7 @@ export class ErrorLogger {
   log(
     type: ErrorLog['type'],
     message: string,
-    details?: any,
+    details?: Record<string, unknown>,
     url?: string,
     statusCode?: number
   ): void {
@@ -56,7 +56,7 @@ export class ErrorLogger {
   /**
    * Sanitize details to avoid storing sensitive data
    */
-  private sanitizeDetails(details: any): any {
+  private sanitizeDetails(details: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
     if (!details) return undefined;
 
     const sanitized = { ...details };

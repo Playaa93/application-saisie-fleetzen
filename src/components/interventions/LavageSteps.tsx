@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import PhotoUploadMultiple from '@/components/PhotoUploadMultiple';
 import SearchableCombobox from '@/components/SearchableCombobox';
 import { AddVehicleDialog } from '@/components/AddVehicleDialog';
+import { LavageFormData } from '@/types/intervention';
 
 interface LavageStepsProps {
   currentStep: number;
-  formData: any;
-  onNext: (data: any) => void;
+  formData: LavageFormData;
+  onNext: (data: LavageFormData) => void;
   onPrevious: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: LavageFormData) => void;
   isSubmitting?: boolean;
 }
 

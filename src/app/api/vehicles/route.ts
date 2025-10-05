@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       throw error;
     }
 
-    const { clientId, site, category } = validatedQuery;
+    const { clientId, site, category, page = 1, limit = 50 } = validatedQuery;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
         vehicle_category,
         work_site,
         metadata
-      `)
+      `, { count: 'exact' }) // Count total for pagination
       .eq('client_id', clientId)
       .eq('is_active', true);
 
@@ -66,7 +66,12 @@ export async function GET(request: Request) {
       query = query.eq('vehicle_category', category.toLowerCase());
     }
 
-    const { data: vehicles, error } = await query.order('license_plate');
+    // Apply pagination with Supabase .range()
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    const { data: vehicles, error, count } = await query.order('license_plate');
 
     if (error) {
       logError(error, { context: 'GET /api/vehicles', clientId, site, category });
@@ -82,13 +87,23 @@ export async function GET(request: Request) {
       site,
       category,
       count: vehicles?.length || 0,
+      total: count,
+      page,
+      limit,
       duration
     }, 'Vehicles fetched successfully');
 
     return NextResponse.json({
       success: true,
       vehicles: vehicles || [],
-      count: vehicles?.length || 0,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: count ? Math.ceil(count / limit) : 0,
+        hasNext: count ? (page * limit) < count : false,
+        hasPrev: page > 1,
+      }
     });
   } catch (error) {
     const duration = Date.now() - startTime;

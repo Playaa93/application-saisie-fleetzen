@@ -141,7 +141,9 @@ export const interventionQuerySchema = z.object({
   date_from: timestampSchema.optional(),
   date_to: timestampSchema.optional(),
   search: z.string().optional(),
-  ...paginationSchema.shape,
+  // Cursor-based pagination (infinite scroll)
+  cursor: timestampSchema.optional(), // created_at du dernier item
+  limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 // ============================================================================

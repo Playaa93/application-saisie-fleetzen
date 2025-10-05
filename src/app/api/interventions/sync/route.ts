@@ -26,12 +26,12 @@ const syncInterventionSchema = z.object({
   location: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  customFields: z.record(z.any()).optional(),
+  customFields: z.record(z.unknown()).optional(),
   mileageStart: z.number().int().optional(),
   mileageEnd: z.number().int().optional(),
   durationMinutes: z.number().int().optional(),
   workPerformed: z.string().optional(),
-  partsUsed: z.array(z.any()).optional(),
+  partsUsed: z.array(z.unknown()).optional(),
   laborCost: z.number().optional(),
   partsCost: z.number().optional(),
   totalCost: z.number().optional(),
@@ -64,9 +64,15 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
       const validatedData = batchSyncSchema.parse(body);
 
+      interface SyncResult {
+        localId: string;
+        id?: string;
+        error?: string;
+      }
+
       const syncResults = {
-        success: [] as any[],
-        failed: [] as any[],
+        success: [] as SyncResult[],
+        failed: [] as SyncResult[],
       };
 
       // Process each intervention in the batch
@@ -84,12 +90,12 @@ export async function POST(request: NextRequest) {
           if (existing) {
             // Update existing intervention
             const photos = interventionData.photos;
-            delete (interventionData as any).photos;
+            const { photos: _removed, ...interventionWithoutPhotos } = interventionData;
 
             [savedIntervention] = await db
               .update(interventions)
               .set({
-                ...interventionData,
+                ...interventionWithoutPhotos,
                 scheduledDate: interventionData.scheduledDate ? new Date(interventionData.scheduledDate) : null,
                 startedAt: interventionData.startedAt ? new Date(interventionData.startedAt) : null,
                 completedAt: interventionData.completedAt ? new Date(interventionData.completedAt) : null,
@@ -119,13 +125,13 @@ export async function POST(request: NextRequest) {
             const interventionNumber = `${prefix}-${timestamp}-${random}`;
 
             const photos = interventionData.photos;
-            delete (interventionData as any).photos;
+            const { photos: _removed2, ...interventionWithoutPhotos2 } = interventionData;
 
             // Create new intervention
             [savedIntervention] = await db
               .insert(interventions)
               .values({
-                ...interventionData,
+                ...interventionWithoutPhotos2,
                 agentId: authRequest.user!.id,
                 interventionNumber,
                 scheduledDate: interventionData.scheduledDate ? new Date(interventionData.scheduledDate) : null,

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle, Loader2, Link as LinkIcon } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { VehicleData } from '@/types/intervention'
 
 interface AddVehicleDialogProps {
   open: boolean
@@ -22,8 +23,8 @@ interface AddVehicleDialogProps {
   prefilledClientName: string
   prefilledSite: string
   prefilledCategory: string
-  onVehicleCreated: (vehicle: any) => void
-  onVehicleLink?: (vehicle: any) => void
+  onVehicleCreated: (vehicle: VehicleData) => void
+  onVehicleLink?: (vehicle: VehicleData) => void
 }
 
 export function AddVehicleDialog({
@@ -45,7 +46,7 @@ export function AddVehicleDialog({
 
   const [checking, setChecking] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [existingVehicle, setExistingVehicle] = useState<any>(null)
+  const [existingVehicle, setExistingVehicle] = useState<VehicleData | null>(null)
   const [error, setError] = useState('')
 
   // Reset form when dialog closes

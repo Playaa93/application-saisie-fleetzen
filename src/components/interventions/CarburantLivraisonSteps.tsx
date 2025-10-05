@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import PhotoUploadMultiple from '@/components/PhotoUploadMultiple';
 import SearchableCombobox from '@/components/SearchableCombobox';
 import { AddVehicleDialog } from '@/components/AddVehicleDialog';
+import { CarburantLivraisonFormData } from '@/types/intervention';
 
 interface CarburantLivraisonStepsProps {
   currentStep: number;
-  formData: any;
-  onNext: (data: any) => void;
+  formData: CarburantLivraisonFormData;
+  onNext: (data: CarburantLivraisonFormData) => void;
   onPrevious: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: CarburantLivraisonFormData) => void;
   isSubmitting?: boolean;
 }
 

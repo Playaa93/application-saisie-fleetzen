@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import PhotoUploadMultiple from '@/components/PhotoUploadMultiple';
+import { CarburantCuveFormData } from '@/types/intervention';
 
 interface CarburantCuveStepsProps {
   currentStep: number;
-  formData: any;
-  onNext: (data: any) => void;
+  formData: CarburantCuveFormData;
+  onNext: (data: CarburantCuveFormData) => void;
   onPrevious: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: CarburantCuveFormData) => void;
   isSubmitting?: boolean;
 }
 

@@ -9,6 +9,7 @@ import {
   deleteIntervention,
   updateInterventionStatus,
 } from "@/lib/offline-db";
+import { InterventionFormData } from "@/types/intervention";
 
 interface SubmitOptions {
   apiEndpoint?: string;
@@ -27,7 +28,7 @@ export function useOfflineSubmit() {
    */
   const submitIntervention = useCallback(
     async (
-      data: any,
+      data: InterventionFormData,
       photos?: { before?: Blob; after?: Blob },
       options?: SubmitOptions
     ) => {

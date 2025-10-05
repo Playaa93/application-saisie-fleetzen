@@ -43,11 +43,12 @@ export async function POST() {
       createIndexes
     });
 
-  } catch (error: any) {
-    logError(error, { context: 'POST /api/migrate - migration error' });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logError(error as Error, { context: 'POST /api/migrate - migration error' });
 
     return NextResponse.json(
-      { success: false, error: error.message, details: error },
+      { success: false, error: errorMessage, details: error instanceof Error ? error : String(error) },
       { status: 500 }
     );
   }

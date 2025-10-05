@@ -12,42 +12,12 @@ import { Button } from '@/components/ui/button';
 import { formatDateShort } from '@/lib/utils';
 import { reverseGeocode, getGoogleMapsUrl, getWazeUrl } from '@/lib/geocoding';
 import { InterventionMap } from '@/components/InterventionMap';
-
-interface Intervention {
-  id: string;
-  type: string;
-  typeCode: string;
-  typeIcon: string;
-  typeColor: string;
-  client: string;
-  clientId: string;
-  vehicule: string;
-  vehicleId: string | null;
-  vehicleCategory: string;
-  agent: string;
-  agentEmail: string;
-  status: string;
-  notes: string | null;
-  internalNotes: string | null;
-  coordinates: any;
-  locationAccuracy: number | null;
-  scheduledAt: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  signedAt: string | null;
-  clientSignature: string | null;
-  agentSignature: string | null;
-  metadata: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-  syncedAt: string | null;
-  photos: { id: number; url: string; type: string }[];
-}
+import { InterventionDetail } from '@/types/intervention';
 
 export default function InterventionDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [intervention, setIntervention] = useState<Intervention | null>(null);
+  const [intervention, setIntervention] = useState<InterventionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState<string | null>(null);
   const [geocoding, setGeocoding] = useState(false);
@@ -310,7 +280,7 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {intervention.metadata.photos.photoManometre.map((photo: any, index: number) => (
+                {intervention.metadata.photos.photoManometre?.map((photo, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={photo.url}
@@ -338,7 +308,7 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {intervention.metadata.photos.photosAvant.map((photo: any, index: number) => (
+                {intervention.metadata.photos.photosAvant?.map((photo, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={photo.url}
@@ -366,7 +336,7 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {intervention.metadata.photos.photosApres.map((photo: any, index: number) => (
+                {intervention.metadata.photos.photosApres?.map((photo, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={photo.url}
@@ -394,7 +364,7 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {intervention.metadata.photos.photosJaugesAvant.map((photo: any, index: number) => (
+                {intervention.metadata.photos.photosJaugesAvant?.map((photo, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={photo.url}
@@ -422,7 +392,7 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {intervention.metadata.photos.photosJaugesApres.map((photo: any, index: number) => (
+                {intervention.metadata.photos.photosJaugesApres?.map((photo, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={photo.url}
@@ -450,7 +420,7 @@ export default function InterventionDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {intervention.metadata.photos.photoTicket.map((photo: any, index: number) => (
+                {intervention.metadata.photos.photoTicket?.map((photo, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={photo.url}
