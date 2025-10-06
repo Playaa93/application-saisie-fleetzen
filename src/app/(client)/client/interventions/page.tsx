@@ -35,10 +35,14 @@ export default async function ClientInterventionsPage() {
       id,
       status,
       created_at,
+      completed_at,
+      notes,
+      metadata,
+      location_accuracy,
       intervention_type:intervention_types(name),
       client:clients(name),
       vehicle:vehicles(license_plate),
-      agent:agents(first_name, last_name)
+      agent:agents(first_name, last_name, email)
     `)
     .order('created_at', { ascending: false });
 
@@ -63,7 +67,7 @@ export default async function ClientInterventionsPage() {
       </div>
 
       <Card className="p-6">
-        <InterventionsDataTable data={interventions || []} />
+        <InterventionsDataTable data={interventions || []} mode="client" />
       </Card>
     </div>
   );

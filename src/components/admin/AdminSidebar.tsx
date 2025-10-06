@@ -49,6 +49,21 @@ export function AdminSidebar() {
     router.push('/');
   };
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        router.push('/login');
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <aside className="hidden md:flex w-64 border-r border-border flex-col bg-card">
       {/* Header */}
@@ -97,16 +112,14 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-border">
-        <form action="/api/auth/logout" method="POST">
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            type="submit"
-          >
-            <LogOut className="h-5 w-5 mr-3" />
-            Déconnexion
-          </Button>
-        </form>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-5 w-5 mr-3" />
+          Déconnexion
+        </Button>
       </div>
     </aside>
   );

@@ -80,6 +80,7 @@
     "tsx": "^4.20.6",
     "winston": "^3.18.3",
     "winston-transport": "^4.9.0",
+    "yet-another-react-lightbox": "^3.25.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

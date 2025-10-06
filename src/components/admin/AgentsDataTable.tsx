@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowUpDown, Search, Plus, Pencil, Trash2, RotateCcw, User } from 'lucide-react';
 import { AgentFormDialog } from './AgentFormDialog';
 import { AgentDeleteDialog } from './AgentDeleteDialog';
@@ -39,6 +40,7 @@ export type Agent = {
   is_active: boolean;
   avatar_url?: string | null;
   created_at: string;
+  permanently_deleted?: boolean;
 };
 
 const getUserTypeBadge = (userType: string) => {
@@ -62,6 +64,7 @@ export function AgentsDataTable({ data }: AgentsDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -78,6 +81,26 @@ export function AgentsDataTable({ data }: AgentsDataTableProps) {
     setSelectedAgent(agent);
     setDeleteDialogOpen(true);
   };
+
+  // Mémoriser les données filtrées pour éviter les recalculs
+  const filteredData = useMemo(() => {
+    return data
+      .filter(agent => !agent.permanently_deleted) // Toujours exclure les agents supprimés définitivement
+      .filter(agent => {
+        if (statusFilter === 'active') return agent.is_active;
+        if (statusFilter === 'inactive') return !agent.is_active;
+        return true; // 'all'
+      });
+  }, [data, statusFilter]);
+
+  // Mémoriser les compteurs pour éviter les recalculs
+  const { activeCount, inactiveCount, totalCount } = useMemo(() => {
+    return {
+      activeCount: data.filter(a => !a.permanently_deleted && a.is_active).length,
+      inactiveCount: data.filter(a => !a.permanently_deleted && !a.is_active).length,
+      totalCount: data.filter(a => !a.permanently_deleted).length,
+    };
+  }, [data]);
 
   const columns: ColumnDef<Agent>[] = [
     {
@@ -209,7 +232,7 @@ export function AgentsDataTable({ data }: AgentsDataTableProps) {
   ];
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -228,6 +251,21 @@ export function AgentsDataTable({ data }: AgentsDataTableProps) {
   return (
     <>
       <div className="space-y-4">
+        {/* Filtres par statut */}
+        <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'active' | 'inactive' | 'all')}>
+          <TabsList>
+            <TabsTrigger value="active">
+              Actifs ({activeCount})
+            </TabsTrigger>
+            <TabsTrigger value="inactive">
+              Inactifs ({inactiveCount})
+            </TabsTrigger>
+            <TabsTrigger value="all">
+              Tous ({totalCount})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Toolbar */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1">

@@ -14,7 +14,7 @@ export default async function AdminAgentsPage() {
   // Fetch all agents (RLS policy allows admins to see all)
   const { data: agents, error } = await supabase
     .from('agents')
-    .select('id, email, first_name, last_name, phone, role, user_type, is_active, avatar_url, created_at')
+    .select('id, email, first_name, last_name, phone, role, user_type, is_active, avatar_url, created_at, permanently_deleted')
     .order('created_at', { ascending: false });
 
   if (error) {

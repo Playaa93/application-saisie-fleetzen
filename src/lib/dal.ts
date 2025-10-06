@@ -254,7 +254,7 @@ export async function getInterventions(filters?: {
       *,
       intervention_type:intervention_types(name),
       client:clients(name),
-      vehicle:vehicles(license_plate, brand, model)
+      vehicle:vehicles(license_plate, make, model)
     `)
     .eq('agent_id', user.id)
     .order('created_at', { ascending: false });

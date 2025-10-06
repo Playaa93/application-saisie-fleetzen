@@ -337,6 +337,116 @@ export async function reactivateAgent(agentId: string) {
 }
 
 /**
+ * Supprimer définitivement un agent (hard delete)
+ * - Supprime le compte auth.users
+ * - Supprime l'avatar du storage
+ * - Marque l'agent comme permanently_deleted
+ * - Conserve les interventions liées (pas de CASCADE DELETE)
+ */
+export async function permanentlyDeleteAgent(agentId: string) {
+  const supabase = await createClient();
+  const adminClient = createAdminClient();
+
+  // 1. Vérifier permissions admin
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: 'Non authentifié' };
+  }
+
+  const { data: currentAgent } = await supabase
+    .from('agents')
+    .select('user_type')
+    .eq('id', user.id)
+    .single();
+
+  if (!currentAgent || !['admin', 'super_admin'].includes(currentAgent.user_type)) {
+    return { error: 'Accès refusé - réservé aux administrateurs' };
+  }
+
+  // 2. Interdire la suppression de son propre compte
+  if (agentId === user.id) {
+    return { error: 'Impossible de supprimer votre propre compte' };
+  }
+
+  // 3. Récupérer les infos de l'agent à supprimer
+  const { data: agentToDelete, error: fetchError } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('id', agentId)
+    .single();
+
+  if (fetchError || !agentToDelete) {
+    return { error: 'Agent introuvable' };
+  }
+
+  // 4. Vérifier que l'agent est déjà inactif (sécurité)
+  if (agentToDelete.is_active) {
+    return { error: 'Veuillez d\'abord désactiver l\'agent avant de le supprimer définitivement' };
+  }
+
+  // 5. Vérifier qu'il n'est pas déjà supprimé
+  if (agentToDelete.permanently_deleted) {
+    return { error: 'Cet agent a déjà été supprimé définitivement' };
+  }
+
+  try {
+    // 6. Supprimer l'avatar du storage (si existe)
+    if (agentToDelete.avatar_url) {
+      try {
+        // Extraire le chemin du fichier depuis l'URL
+        const urlParts = agentToDelete.avatar_url.split('/');
+        const folderAndFile = `${agentId}/${urlParts[urlParts.length - 1]}`;
+
+        const { error: storageError } = await supabase.storage
+          .from('agent-avatars')
+          .remove([folderAndFile]);
+
+        if (storageError) {
+          console.error('Error deleting avatar from storage:', storageError);
+          // Continue même si suppression avatar échoue
+        } else {
+          console.log('✅ Avatar deleted from storage:', folderAndFile);
+        }
+      } catch (error) {
+        console.error('Avatar deletion failed:', error);
+        // Continue même si suppression avatar échoue
+      }
+    }
+
+    // 7. Supprimer l'utilisateur de auth.users
+    const { error: authDeleteError } = await adminClient.auth.admin.deleteUser(agentId);
+
+    if (authDeleteError) {
+      console.error('Error deleting auth user:', authDeleteError);
+      return { error: `Erreur lors de la suppression du compte auth: ${authDeleteError.message}` };
+    }
+
+    console.log('✅ Auth user deleted:', agentToDelete.email);
+
+    // 8. Marquer l'agent comme permanently_deleted dans la table agents
+    const { error: updateError } = await supabase
+      .from('agents')
+      .update({
+        permanently_deleted: true,
+      })
+      .eq('id', agentId);
+
+    if (updateError) {
+      console.error('Error marking agent as permanently deleted:', updateError);
+      return { error: updateError.message };
+    }
+
+    console.log(`✅ Agent ${agentToDelete.email} permanently deleted successfully`);
+    revalidatePath('/admin/agents');
+    return { success: true };
+
+  } catch (error) {
+    console.error('Unexpected error during permanent deletion:', error);
+    return { error: 'Erreur inattendue lors de la suppression définitive' };
+  }
+}
+
+/**
  * Réinitialiser le mot de passe d'un agent
  */
 export async function resetAgentPassword(agentId: string, newPassword: string) {

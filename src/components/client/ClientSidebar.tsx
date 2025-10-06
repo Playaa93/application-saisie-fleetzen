@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -25,6 +25,22 @@ interface ClientSidebarProps {
 
 export function ClientSidebar({ clientName }: ClientSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        router.push('/login');
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <aside className="hidden md:flex w-64 border-r border-border flex-col bg-card">
@@ -61,16 +77,14 @@ export function ClientSidebar({ clientName }: ClientSidebarProps) {
 
       {/* Footer */}
       <div className="p-4 border-t border-border">
-        <form action="/api/auth/logout" method="POST">
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            type="submit"
-          >
-            <LogOut className="h-5 w-5 mr-3" />
-            Déconnexion
-          </Button>
-        </form>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-5 w-5 mr-3" />
+          Déconnexion
+        </Button>
       </div>
     </aside>
   );

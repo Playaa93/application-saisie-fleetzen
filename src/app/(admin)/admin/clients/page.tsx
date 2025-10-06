@@ -1,24 +1,43 @@
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { ClientsDataTable } from '@/components/admin/ClientsDataTable';
 import { Card } from '@/components/ui/card';
 
 /**
  * Page Admin - Gestion des clients
  *
- * CRUD complet des clients.
- * Accessible uniquement aux admins (RLS policy).
+ * Table unique avec modal d'édition pour gérer :
+ * - Informations client
+ * - Utilisateurs associés au client
  */
 export default async function AdminClientsPage() {
   const supabase = await createClient();
 
-  // Fetch all clients (RLS policy allows admins to see all)
-  const { data: clients, error } = await supabase
+  // Vérifier authentification
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    redirect('/login');
+  }
+
+  // Vérifier que l'utilisateur est admin
+  const { data: agent, error: agentError } = await supabase
+    .from('agents')
+    .select('user_type')
+    .eq('id', user.id)
+    .single();
+
+  if (agentError || !agent || !['admin', 'super_admin'].includes(agent.user_type)) {
+    redirect('/');
+  }
+
+  // Récupérer les clients (entreprises)
+  const { data: clients, error: clientsError } = await supabase
     .from('clients')
     .select('id, name, code, city, contact_name, contact_phone, is_active, created_at')
     .order('name', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching clients:', error);
+  if (clientsError) {
+    console.error('Error fetching clients:', clientsError);
     return (
       <div className="p-8">
         <div className="text-destructive">
@@ -33,7 +52,7 @@ export default async function AdminClientsPage() {
       <div>
         <h1 className="text-3xl font-bold">Gestion des Clients</h1>
         <p className="text-muted-foreground">
-          Gérer les entreprises clientes
+          Cliquez sur le crayon pour éditer un client et gérer ses utilisateurs
         </p>
       </div>
 

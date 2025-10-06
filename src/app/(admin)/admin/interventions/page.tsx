@@ -18,10 +18,14 @@ export default async function AdminInterventionsPage() {
       id,
       status,
       created_at,
+      completed_at,
+      notes,
+      metadata,
+      location_accuracy,
       intervention_type:intervention_types(name),
       client:clients(name),
       vehicle:vehicles(license_plate),
-      agent:agents(first_name, last_name)
+      agent:agents(first_name, last_name, email)
     `)
     .order('created_at', { ascending: false });
 

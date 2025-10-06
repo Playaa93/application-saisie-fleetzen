@@ -1,19 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ColumnDef,
+  ColumnFiltersState,
+  SortingState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   useReactTable,
-  SortingState,
-  ColumnFiltersState,
 } from '@tanstack/react-table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -22,88 +20,104 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpDown, Search, Plus, Pencil, Trash2, MapPin } from 'lucide-react';
-import { EditClientDialog } from './EditClientDialog';
+import { ArrowUpDown, ChevronLeft, ChevronRight, Search, Ban, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-export type Client = {
+type ClientUser = {
   id: string;
-  name: string;
-  code: string | null;
-  city: string | null;
-  contact_name: string | null;
-  contact_phone: string | null;
+  email: string;
+  full_name: string | null;
   is_active: boolean;
   created_at: string;
+  client: { id: string; name: string } | null;
 };
 
-interface ClientsDataTableProps {
-  data: Client[];
+interface ClientUsersDataTableProps {
+  data: ClientUser[];
 }
 
-export function ClientsDataTable({ data }: ClientsDataTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+export function ClientUsersDataTable({ data }: ClientUsersDataTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'created_at', desc: true }
+  ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
-  const handleEditClient = (client: Client) => {
-    setSelectedClient(client);
-    setDialogOpen(true);
-  };
-
-  const columns: ColumnDef<Client>[] = [
+  const columns: ColumnDef<ClientUser>[] = useMemo(() => [
     {
-      accessorKey: 'code',
-      header: 'Code',
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.getValue('code') || '-'}</span>
-      ),
-    },
-    {
-      accessorKey: 'name',
+      accessorKey: 'email',
       header: ({ column }) => (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Nom
+          Email
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.email}</div>
+      ),
     },
     {
-      accessorKey: 'city',
-      header: 'Ville',
-      cell: ({ row }) => {
-        const city = row.getValue('city') as string | null;
-        return city ? (
-          <div className="flex items-center gap-1">
-            <MapPin className="h-3 w-3 text-muted-foreground" />
-            {city}
-          </div>
-        ) : (
-          '-'
-        );
-      },
+      accessorKey: 'full_name',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Nom complet
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => row.original.full_name || '-',
     },
     {
-      accessorKey: 'contact_name',
-      header: 'Contact',
-    },
-    {
-      accessorKey: 'contact_phone',
-      header: 'Téléphone',
+      accessorKey: 'client.name',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Client
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <div className="font-medium">
+          {row.original.client?.name || 'Inconnu'}
+        </div>
+      ),
     },
     {
       accessorKey: 'is_active',
       header: 'Statut',
-      cell: ({ row }) => (
-        <Badge variant={row.getValue('is_active') ? 'default' : 'secondary'}>
-          {row.getValue('is_active') ? 'Actif' : 'Inactif'}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const isActive = row.original.is_active;
+        return (
+          <Badge
+            variant={isActive ? 'default' : 'secondary'}
+            className={isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+          >
+            {isActive ? (
+              <>
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Actif
+              </>
+            ) : (
+              <>
+                <Ban className="h-3 w-3 mr-1" />
+                Inactif
+              </>
+            )}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: 'created_at',
@@ -112,37 +126,20 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Créé le
+          Date création
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => {
-        const date = new Date(row.getValue('created_at'));
-        return date.toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        });
-      },
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const client = row.original;
+        const date = row.original.created_at;
         return (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleEditClient(client)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+          <div className="text-sm">
+            {format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: fr })}
           </div>
         );
       },
     },
-  ];
+  ], []);
 
   const table = useReactTable({
     data,
@@ -158,26 +155,26 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
       sorting,
       columnFilters,
       globalFilter,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
     },
   });
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1">
-          <Search className="h-4 w-4 text-muted-foreground" />
+      {/* Filtres */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un client..."
+            placeholder="Rechercher par email, nom ou client..."
             value={globalFilter ?? ''}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="max-w-sm"
+            className="pl-10"
           />
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau client
-        </Button>
       </div>
 
       {/* Table */}
@@ -190,10 +187,7 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -202,7 +196,7 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="hover:bg-muted/50">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -213,7 +207,7 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Aucun client trouvé
+                  Aucun utilisateur client trouvé
                 </TableCell>
               </TableRow>
             )}
@@ -224,7 +218,13 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} client(s)
+          Affichage{' '}
+          {table.getState().pagination.pageIndex * pageSize + 1}-
+          {Math.min(
+            (table.getState().pagination.pageIndex + 1) * pageSize,
+            table.getFilteredRowModel().rows.length
+          )}{' '}
+          sur {table.getFilteredRowModel().rows.length} utilisateur(s)
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -233,8 +233,13 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
+            <ChevronLeft className="h-4 w-4" />
             Précédent
           </Button>
+          <div className="text-sm">
+            Page {table.getState().pagination.pageIndex + 1} sur{' '}
+            {table.getPageCount()}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -242,16 +247,10 @@ export function ClientsDataTable({ data }: ClientsDataTableProps) {
             disabled={!table.getCanNextPage()}
           >
             Suivant
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
-
-      {/* Modal d'édition */}
-      <EditClientDialog
-        client={selectedClient}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
     </div>
   );
 }
