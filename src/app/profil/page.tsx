@@ -66,9 +66,19 @@ export default async function ProfilPage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-8 w-8 text-primary" />
-              </div>
+              {profile.avatarUrl ? (
+                <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-border">
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.fullName}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-8 w-8 text-primary" />
+                </div>
+              )}
               <div>
                 <CardTitle className="text-xl">{profile.fullName}</CardTitle>
                 <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">

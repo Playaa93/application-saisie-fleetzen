@@ -174,7 +174,8 @@ export async function getAgentProfile() {
       phone: agent.phone || '',
       role: agent.role,
       isActive: agent.is_active,
-      memberSince: agent.created_at
+      memberSince: agent.created_at,
+      avatarUrl: agent.avatar_url || null
     },
     stats: {
       total,
