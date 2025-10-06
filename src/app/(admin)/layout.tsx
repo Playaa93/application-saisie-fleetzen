@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminMobileNav } from '@/components/admin/AdminMobileNav';
 import { AdminMobileToggle } from '@/components/admin/AdminMobileToggle';
 
 /**
@@ -42,11 +43,15 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile header with burger menu */}
       <div className="md:hidden border-b border-border bg-card">
         <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex flex-col">
-            <span className="text-base font-semibold">FleetZen</span>
-            <span className="text-xs text-muted-foreground">Portail Admin</span>
+          <div className="flex items-center gap-3">
+            <AdminMobileNav />
+            <div className="flex flex-col">
+              <span className="text-base font-semibold">FleetZen</span>
+              <span className="text-xs text-muted-foreground">Portail Admin</span>
+            </div>
           </div>
           <AdminMobileToggle />
         </div>
