@@ -33,7 +33,7 @@ export default async function AdminVehiclesPage() {
   // Utiliser adminClient pour bypasser RLS
   const adminClient = createAdminClient();
 
-  // Fetch all vehicles with client names (using admin client to bypass RLS)
+  // Fetch all vehicles with client info (using admin client to bypass RLS)
   const { data: vehicles, error } = await adminClient
     .from('vehicles')
     .select(`
@@ -45,9 +45,27 @@ export default async function AdminVehiclesPage() {
       vehicle_category,
       work_site,
       created_at,
-      client:clients(name)
+      client:clients(id, name)
     `)
     .order('license_plate', { ascending: true });
+
+  // Fetch all clients for the dropdown
+  const { data: allClients } = await adminClient
+    .from('clients')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  // Fetch distinct work sites
+  const { data: sitesData } = await adminClient
+    .from('vehicles')
+    .select('work_site')
+    .not('work_site', 'is', null)
+    .neq('work_site', '');
+
+  const availableSites = Array.from(
+    new Set(sitesData?.map(v => v.work_site).filter(Boolean))
+  ).sort() as string[];
 
   if (error) {
     console.error('Error fetching vehicles:', error);
@@ -162,7 +180,12 @@ export default async function AdminVehiclesPage() {
 
       {/* Table de gestion */}
       <Card className="p-6">
-        <VehiclesManagement mode="global" initialVehicles={vehicles || []} />
+        <VehiclesManagement
+          mode="global"
+          initialVehicles={vehicles || []}
+          availableClients={allClients || []}
+          availableSites={availableSites || []}
+        />
       </Card>
     </div>
   );

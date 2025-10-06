@@ -1,123 +1,117 @@
 import { createClient } from '@/lib/supabase/server';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Settings, Shield, Database, Bell, Users } from 'lucide-react';
+import { redirect } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings, Info, FileText, Tags, Palette, Shield } from 'lucide-react';
+import { GeneralTab } from '@/components/admin/settings/GeneralTab';
+import { InterventionTypesTab } from '@/components/admin/settings/InterventionTypesTab';
+import { CategoriesAndSitesTab } from '@/components/admin/settings/CategoriesAndSitesTab';
+import { AppearanceTab } from '@/components/admin/settings/AppearanceTab';
+import { SecurityTab } from '@/components/admin/settings/SecurityTab';
 
-/**
- * Page Admin - Paramètres système
- *
- * Configuration globale de l'application.
- * Accessible uniquement aux super_admin.
- */
-export default async function AdminSettingsPage() {
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export default async function SettingsPage() {
   const supabase = await createClient();
 
-  // Fetch system stats
-  const [
-    { count: totalUsers },
-    { count: totalInterventionTypes },
-  ] = await Promise.all([
-    supabase.from('agents').select('*', { count: 'exact', head: true }),
-    supabase.from('intervention_types').select('*', { count: 'exact', head: true }),
-  ]);
+  // Fetch data for GeneralTab
+  const { count: totalUsers } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
 
-  const settingsSections = [
-    {
-      icon: Users,
-      title: 'Utilisateurs & Permissions',
-      description: 'Gérer les rôles et permissions (agents, admins, clients)',
-      badge: `${totalUsers || 0} utilisateurs`,
-      status: 'active' as const,
-    },
-    {
-      icon: Database,
-      title: 'Types d\'Interventions',
-      description: 'Configurer les types d\'interventions disponibles',
-      badge: `${totalInterventionTypes || 0} types`,
-      status: 'active' as const,
-    },
-    {
-      icon: Shield,
-      title: 'Sécurité',
-      description: 'Configuration RLS, JWT, rate limiting',
-      badge: 'RLS activé',
-      status: 'active' as const,
-    },
-    {
-      icon: Bell,
-      title: 'Notifications',
-      description: 'Email, SMS, push notifications',
-      badge: 'Bientôt disponible',
-      status: 'coming_soon' as const,
-    },
-  ];
+  const { count: totalInterventionTypes } = await supabase
+    .from('intervention_types')
+    .select('*', { count: 'exact', head: true });
+
+  // Fetch intervention types for InterventionTypesTab
+  const { data: interventionTypes } = await supabase
+    .from('intervention_types')
+    .select('*')
+    .order('name');
+
+  // Fetch distinct categories and sites for CategoriesAndSitesTab
+  // Categories are from enum, so we'll hardcode them
+  const categories = ['tracteur', 'porteur', 'remorque', 'ensemble_complet', 'autre'];
+
+  // Fetch distinct sites
+  const { data: sitesData } = await supabase
+    .from('vehicles')
+    .select('work_site')
+    .not('work_site', 'is', null)
+    .neq('work_site', '');
+
+  const sites = Array.from(
+    new Set(sitesData?.map((v) => v.work_site).filter(Boolean))
+  ).sort() as string[];
 
   return (
-    <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Paramètres Système</h1>
-        <p className="text-muted-foreground">
-          Configuration globale de l'application
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {settingsSections.map((section) => {
-          const Icon = section.icon;
-          return (
-            <Card key={section.title} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{section.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {section.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-border">
-                  <Badge variant={section.status === 'active' ? 'default' : 'outline'}>
-                    {section.badge}
-                  </Badge>
-                  {section.status === 'coming_soon' && (
-                    <span className="text-xs text-muted-foreground">
-                      Version future
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Quick Stats */}
-      <Card className="p-6 mt-8">
-        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          Informations Système
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p className="text-sm text-muted-foreground">Version App</p>
-            <p className="text-2xl font-bold mt-1">1.0.0</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Framework</p>
-            <p className="text-2xl font-bold mt-1">Next.js 15</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Base de données</p>
-            <p className="text-2xl font-bold mt-1">Supabase</p>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Settings className="h-6 w-6 text-primary" />
         </div>
-      </Card>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Paramètres</h1>
+          <p className="text-muted-foreground">
+            Configuration et gestion de l'application FleetZen
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsTrigger value="general" className="gap-2">
+            <Info className="h-4 w-4" />
+            <span className="hidden sm:inline">Général</span>
+          </TabsTrigger>
+          <TabsTrigger value="intervention-types" className="gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Types d'Interventions</span>
+          </TabsTrigger>
+          <TabsTrigger value="categories-sites" className="gap-2">
+            <Tags className="h-4 w-4" />
+            <span className="hidden sm:inline">Catégories & Sites</span>
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="gap-2">
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Apparence</span>
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Sécurité</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general">
+          <GeneralTab
+            stats={{
+              totalUsers: totalUsers || 0,
+              totalInterventionTypes: totalInterventionTypes || 0,
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="intervention-types">
+          <InterventionTypesTab initialTypes={interventionTypes || []} />
+        </TabsContent>
+
+        <TabsContent value="categories-sites">
+          <CategoriesAndSitesTab
+            initialCategories={categories}
+            initialSites={sites}
+          />
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <AppearanceTab />
+        </TabsContent>
+
+        <TabsContent value="security">
+          <SecurityTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

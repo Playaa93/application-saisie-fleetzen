@@ -68,9 +68,17 @@ interface VehiclesManagementProps {
   clientId?: string; // Si fourni, filtre uniquement les véhicules de ce client
   mode?: 'global' | 'client'; // Mode d'affichage
   initialVehicles?: Vehicle[]; // Véhicules initiaux (si fournis par Server Component)
+  availableClients?: Array<{ id: string; name: string }>; // Liste des clients pour le Select (mode global)
+  availableSites?: string[]; // Liste des sites de travail disponibles
 }
 
-export function VehiclesManagement({ clientId, mode = 'global', initialVehicles }: VehiclesManagementProps) {
+export function VehiclesManagement({
+  clientId,
+  mode = 'global',
+  initialVehicles,
+  availableClients = [],
+  availableSites = []
+}: VehiclesManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -101,7 +109,7 @@ export function VehiclesManagement({ clientId, mode = 'global', initialVehicles 
     client_id: clientId || '',
   });
 
-  // Extraire valeurs uniques pour les filtres
+  // Extraire valeurs uniques pour les filtres (depuis les véhicules existants)
   const uniqueClients = useMemo(() => {
     const clients = vehicles
       .map(v => v.client?.name)
@@ -828,6 +836,33 @@ export function VehiclesManagement({ clientId, mode = 'global', initialVehicles 
               />
             </div>
 
+            {/* Sélecteur de client (seulement en mode global) */}
+            {mode === 'global' && (
+              <div className="grid gap-2">
+                <Label htmlFor="client">
+                  Client *
+                </Label>
+                <Select
+                  value={formData.client_id}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, client_id: value })
+                  }
+                  required
+                >
+                  <SelectTrigger id="client">
+                    <SelectValue placeholder="Sélectionner un client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableClients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="make">Marque *</Label>
@@ -873,27 +908,45 @@ export function VehiclesManagement({ clientId, mode = 'global', initialVehicles 
 
               <div className="grid gap-2">
                 <Label htmlFor="vehicle_category">Catégorie</Label>
-                <Input
-                  id="vehicle_category"
-                  placeholder="Utilitaire"
+                <Select
                   value={formData.vehicle_category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, vehicle_category: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, vehicle_category: value })
                   }
-                />
+                >
+                  <SelectTrigger id="vehicle_category">
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tracteur">Tracteur</SelectItem>
+                    <SelectItem value="porteur">Porteur</SelectItem>
+                    <SelectItem value="remorque">Remorque</SelectItem>
+                    <SelectItem value="ensemble_complet">Ensemble complet</SelectItem>
+                    <SelectItem value="autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="work_site">Site de travail</Label>
-              <Input
-                id="work_site"
-                placeholder="Paris - Dépôt Nord"
+              <Select
                 value={formData.work_site}
-                onChange={(e) =>
-                  setFormData({ ...formData, work_site: e.target.value })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, work_site: value })
                 }
-              />
+              >
+                <SelectTrigger id="work_site">
+                  <SelectValue placeholder="Sélectionner un site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSites.map((site) => (
+                    <SelectItem key={site} value={site}>
+                      {site}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

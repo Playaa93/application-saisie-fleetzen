@@ -125,10 +125,13 @@ export async function POST(request: Request) {
   try {
     const rawBody = await request.json();
 
+    // DEBUG: Log raw body
+    console.log('📥 POST /api/vehicles - Raw body:', JSON.stringify(rawBody, null, 2));
+
     // Validate body with Zod
     let validatedBody;
     try {
-      validatedBody = vehicleCreateSchema.parse({
+      const dataToValidate = {
         client_id: rawBody.clientId,
         license_plate: rawBody.licensePlate,
         make: rawBody.make,
@@ -136,9 +139,16 @@ export async function POST(request: Request) {
         year: rawBody.year,
         work_site: rawBody.site,
         vehicle_category: rawBody.category,
-      });
+      };
+
+      console.log('🔍 POST /api/vehicles - Data to validate:', JSON.stringify(dataToValidate, null, 2));
+
+      validatedBody = vehicleCreateSchema.parse(dataToValidate);
+
+      console.log('✅ POST /api/vehicles - Validation passed:', JSON.stringify(validatedBody, null, 2));
     } catch (error) {
       if (error instanceof ZodError) {
+        console.error('❌ POST /api/vehicles - Validation failed:', error.errors);
         logger.warn({ errors: error.errors }, 'POST /api/vehicles - Validation failed');
         return NextResponse.json({
           success: false,
@@ -147,6 +157,7 @@ export async function POST(request: Request) {
           details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
         }, { status: 400 });
       }
+      console.error('❌ POST /api/vehicles - Unexpected validation error:', error);
       throw error;
     }
 
@@ -154,34 +165,41 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const insertData = {
+      license_plate: validatedBody.license_plate,
+      client_id: validatedBody.client_id,
+      work_site: validatedBody.work_site,
+      vehicle_category: validatedBody.vehicle_category || null, // Don't lowercase - must match enum values
+      make: validatedBody.make || null,
+      model: validatedBody.model || null,
+      year: validatedBody.year || null,
+      fuel_type: fuelType || null,
+      tank_capacity: tankCapacity || null,
+      is_active: true,
+    };
+
+    console.log('💾 POST /api/vehicles - Inserting to Supabase:', JSON.stringify(insertData, null, 2));
+
     const { data: newVehicle, error } = await supabase
       .from('vehicles')
-      .insert({
-        license_plate: validatedBody.license_plate,
-        client_id: validatedBody.client_id,
-        work_site: validatedBody.work_site,
-        vehicle_category: validatedBody.vehicle_category?.toLowerCase(),
-        make: validatedBody.make || null,
-        model: validatedBody.model || null,
-        year: validatedBody.year || null,
-        fuel_type: fuelType || null,
-        tank_capacity: tankCapacity || null,
-        is_active: true,
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
+      console.error('❌ POST /api/vehicles - Supabase error:', error);
       logError(error, {
         context: 'POST /api/vehicles',
         licensePlate: validatedBody.license_plate,
         clientId: validatedBody.client_id
       });
       return NextResponse.json(
-        { success: false, error: 'Failed to create vehicle' },
+        { success: false, error: 'Failed to create vehicle', details: error.message },
         { status: 500 }
       );
     }
+
+    console.log('✅ POST /api/vehicles - Vehicle created successfully:', newVehicle?.id);
 
     const duration = Date.now() - startTime;
     logger.info({

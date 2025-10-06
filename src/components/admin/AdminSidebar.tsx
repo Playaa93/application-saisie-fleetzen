@@ -10,7 +10,6 @@ import {
   Building2,
   Truck,
   ClipboardList,
-  ImageIcon,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -20,7 +19,6 @@ import { Switch } from '@/components/ui/switch';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Interventions', href: '/admin/interventions', icon: ClipboardList },
-  { name: 'Photos', href: '/admin/photos', icon: ImageIcon },
   { name: 'Agents', href: '/admin/agents', icon: Users },
   { name: 'Clients', href: '/admin/clients', icon: Building2 },
   { name: 'Véhicules', href: '/admin/vehicles', icon: Truck },
