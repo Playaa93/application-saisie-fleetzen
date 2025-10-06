@@ -1,0 +1,21 @@
+# GitGuardian Configuration
+# https://docs.gitguardian.com/internal-repositories-monitoring/integrations/git_hooks/pre_commit
+
+# Ignore legitimate environment variable references in code
+paths-ignore:
+  - "**/*.example"
+  - "**/*.md"
+  - "**/CHANGELOG.md"
+
+# Allow process.env references (not actual secrets)
+matches-ignore:
+  - name: Supabase Service Role Key Reference
+    match: process\.env\.SUPABASE_SERVICE_ROLE_KEY
+  - name: Environment Variable Pattern
+    match: process\.env\.
+
+# Exclude specific files from scanning
+exclude:
+  - ".env.example"
+  - ".env.local.example"
+  - "src/.env.example"

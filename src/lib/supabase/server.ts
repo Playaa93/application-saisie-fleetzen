@@ -41,13 +41,29 @@ export async function createClient() {
 /**
  * Admin Supabase Client with Service Role Key
  *
- * ⚠️ WARNING: Use with extreme caution! This client bypasses RLS.
- * Only use in Server Actions/Components with proper authentication checks.
+ * ⚠️ SECURITY WARNING:
+ * - This client bypasses ALL Row Level Security (RLS) policies
+ * - ONLY use in Server Actions/Components (never expose to client)
+ * - ALWAYS verify user authentication before using this client
+ * - The service role key is stored in .env.local (gitignored)
+ * - Never log, return, or expose data from this client to frontend
+ *
+ * @example
+ * // ✅ CORRECT: Verify auth first
+ * const { data: { user } } = await supabase.auth.getUser();
+ * if (!user?.user_metadata?.role === 'admin') throw new Error('Unauthorized');
+ * const adminClient = createAdminClient();
+ *
+ * @example
+ * // ❌ WRONG: Direct use without auth check
+ * const adminClient = createAdminClient();
+ * const data = await adminClient.from('users').select('*'); // DANGEROUS!
  */
 export function createAdminClient() {
+  // gitguardian:ignore - Service role key read from environment variable
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Loaded from .env.local (not committed)
     {
       auth: {
         autoRefreshToken: false,
