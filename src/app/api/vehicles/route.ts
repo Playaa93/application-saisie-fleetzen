@@ -130,8 +130,8 @@ export async function POST(request: Request) {
     try {
       validatedBody = vehicleCreateSchema.parse({
         client_id: rawBody.clientId,
-        registration_number: rawBody.licensePlate,
-        brand: rawBody.make,
+        license_plate: rawBody.licensePlate,
+        make: rawBody.make,
         model: rawBody.model,
         year: rawBody.year,
         work_site: rawBody.site,
@@ -157,11 +157,11 @@ export async function POST(request: Request) {
     const { data: newVehicle, error } = await supabase
       .from('vehicles')
       .insert({
-        license_plate: validatedBody.registration_number,
+        license_plate: validatedBody.license_plate,
         client_id: validatedBody.client_id,
         work_site: validatedBody.work_site,
         vehicle_category: validatedBody.vehicle_category?.toLowerCase(),
-        make: validatedBody.brand || null,
+        make: validatedBody.make || null,
         model: validatedBody.model || null,
         year: validatedBody.year || null,
         fuel_type: fuelType || null,
@@ -174,7 +174,7 @@ export async function POST(request: Request) {
     if (error) {
       logError(error, {
         context: 'POST /api/vehicles',
-        licensePlate: validatedBody.registration_number,
+        licensePlate: validatedBody.license_plate,
         clientId: validatedBody.client_id
       });
       return NextResponse.json(
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     const duration = Date.now() - startTime;
     logger.info({
       vehicleId: newVehicle.id,
-      licensePlate: validatedBody.registration_number,
+      licensePlate: validatedBody.license_plate,
       site: validatedBody.work_site,
       duration
     }, 'Vehicle created successfully');

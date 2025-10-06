@@ -27,8 +27,8 @@ import { ArrowUpDown, Search, Plus, Pencil, Trash2, MapPin } from 'lucide-react'
 
 export type Vehicle = {
   id: string;
-  registration_number: string;
-  brand: string | null;
+  license_plate: string;
+  make: string | null;
   model: string | null;
   year: number | null;
   vehicle_category: string | null;
@@ -41,7 +41,7 @@ export type Vehicle = {
 
 const columns: ColumnDef<Vehicle>[] = [
   {
-    accessorKey: 'registration_number',
+    accessorKey: 'license_plate',
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -52,11 +52,11 @@ const columns: ColumnDef<Vehicle>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="font-mono font-semibold">{row.getValue('registration_number')}</span>
+      <span className="font-mono font-semibold">{row.getValue('license_plate')}</span>
     ),
   },
   {
-    accessorKey: 'brand',
+    accessorKey: 'make',
     header: 'Marque',
   },
   {

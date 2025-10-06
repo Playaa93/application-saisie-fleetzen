@@ -5,7 +5,7 @@ export type InterventionStatus = 'pending' | 'in_progress' | 'completed' | 'canc
 export interface Vehicle {
   id: string;
   plateNumber: string;
-  brand: string;
+  make: string;
   model: string;
   type: string;
 }
@@ -198,8 +198,8 @@ export interface Coordinates {
 
 export interface VehicleData {
   id: string;
-  registration_number: string;
-  brand?: string;
+  license_plate: string;
+  make?: string;
   model?: string;
   year?: number;
   vehicle_category?: string;

@@ -167,8 +167,8 @@ export async function POST(request: NextRequest) {
               },
               vehicle: {
                 id: vehicles.id,
-                registrationNumber: vehicles.registrationNumber,
-                brand: vehicles.brand,
+                registrationNumber: vehicles.licensePlate,
+                brand: vehicles.make,
                 model: vehicles.model,
               },
               type: {

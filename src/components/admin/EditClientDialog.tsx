@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/form';
 import { Building2, UserCheck, Loader2, PlusCircle, Trash2, Pencil, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { VehiclesManagement } from '@/components/admin/VehiclesManagement';
 
 /**
  * Schéma Zod pour la validation des données client
@@ -305,10 +306,13 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info">Informations</TabsTrigger>
             <TabsTrigger value="users">
               Utilisateurs ({clientUsers.length})
+            </TabsTrigger>
+            <TabsTrigger value="vehicles">
+              Véhicules
             </TabsTrigger>
           </TabsList>
 
@@ -612,6 +616,11 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* ONGLET VÉHICULES */}
+          <TabsContent value="vehicles" className="space-y-4">
+            <VehiclesManagement clientId={client.id} mode="client" />
           </TabsContent>
         </Tabs>
       </DialogContent>

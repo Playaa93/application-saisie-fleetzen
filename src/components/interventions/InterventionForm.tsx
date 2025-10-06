@@ -16,9 +16,9 @@ import type { InterventionType, Vehicle, Client } from "@/types/intervention"
 
 // Mock data
 const mockVehicles: Vehicle[] = [
-  { id: "1", plateNumber: "AB-123-CD", brand: "Renault", model: "Trafic", type: "Fourgon" },
-  { id: "2", plateNumber: "EF-456-GH", brand: "Peugeot", model: "Partner", type: "Utilitaire" },
-  { id: "3", plateNumber: "IJ-789-KL", brand: "Citroën", model: "Berlingo", type: "Utilitaire" },
+  { id: "1", plateNumber: "AB-123-CD", make: "Renault", model: "Trafic", type: "Fourgon" },
+  { id: "2", plateNumber: "EF-456-GH", make: "Peugeot", model: "Partner", type: "Utilitaire" },
+  { id: "3", plateNumber: "IJ-789-KL", make: "Citroën", model: "Berlingo", type: "Utilitaire" },
 ]
 
 const mockClients: Client[] = [

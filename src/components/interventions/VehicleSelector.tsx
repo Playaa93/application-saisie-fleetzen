@@ -24,7 +24,7 @@ export function VehicleSelector({
 
   const filteredVehicles = vehicles.filter(vehicle =>
     vehicle.plateNumber.toLowerCase().includes(search.toLowerCase()) ||
-    vehicle.brand.toLowerCase().includes(search.toLowerCase()) ||
+    vehicle.make.toLowerCase().includes(search.toLowerCase()) ||
     vehicle.model.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -81,7 +81,7 @@ export function VehicleSelector({
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-base">{vehicle.plateNumber}</div>
                 <div className="text-sm text-muted-foreground truncate">
-                  {vehicle.brand} {vehicle.model} • {vehicle.type}
+                  {vehicle.make} {vehicle.model} • {vehicle.type}
                 </div>
               </div>
             </button>
@@ -94,7 +94,7 @@ export function VehicleSelector({
           <div className="text-sm font-medium">Véhicule sélectionné:</div>
           <div className="text-base font-semibold mt-1">{selectedVehicle.plateNumber}</div>
           <div className="text-sm text-muted-foreground">
-            {selectedVehicle.brand} {selectedVehicle.model}
+            {selectedVehicle.make} {selectedVehicle.model}
           </div>
         </div>
       )}

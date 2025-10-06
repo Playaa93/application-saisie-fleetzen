@@ -35,15 +35,15 @@ export default async function ClientVehiclesPage() {
     .from('vehicles')
     .select(`
       id,
-      registration_number,
-      brand,
+      license_plate,
+      make,
       model,
       year,
       vehicle_category,
       work_site,
       created_at
     `)
-    .order('registration_number', { ascending: true });
+    .order('license_plate', { ascending: true });
 
   if (error) {
     console.error('Error fetching vehicles:', error);
@@ -109,9 +109,9 @@ export default async function ClientVehiclesPage() {
                         <Truck className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">{vehicle.registration_number}</h3>
+                        <h3 className="font-semibold text-lg">{vehicle.license_plate}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {vehicle.brand} {vehicle.model}
+                          {vehicle.make} {vehicle.model}
                         </p>
                       </div>
                     </div>

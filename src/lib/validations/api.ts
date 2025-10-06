@@ -49,8 +49,8 @@ export const clientQuerySchema = z.object({
 
 export const vehicleCreateSchema = z.object({
   client_id: uuidSchema,
-  registration_number: z.string().min(1, 'Immatriculation requise').max(20),
-  brand: z.string().max(100).optional(),
+  license_plate: z.string().min(1, 'Immatriculation requise').max(20),
+  make: z.string().max(100).optional(),
   model: z.string().max(100).optional(),
   work_site: z.string().max(200).optional(),
   vehicle_category: z.string().max(50).optional(),

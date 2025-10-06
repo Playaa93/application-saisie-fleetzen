@@ -37,8 +37,8 @@ export const vehicles = pgTable('vehicles', {
   id: uuid('id').defaultRandom().primaryKey(),
   clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
 
-  registrationNumber: text('registration_number').notNull(),
-  brand: text('brand').notNull(),
+  licensePlate: text('license_plate').notNull(),
+  make: text('make').notNull(),
   model: text('model').notNull(),
   year: integer('year'),
   vin: text('vin'), // Vehicle Identification Number
@@ -57,8 +57,8 @@ export const vehicles = pgTable('vehicles', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
   clientIdx: index('vehicles_client_idx').on(table.clientId),
-  regIdx: index('vehicles_reg_idx').on(table.registrationNumber),
-  regUniq: uniqueIndex('vehicles_reg_uniq').on(table.registrationNumber),
+  regIdx: index('vehicles_reg_idx').on(table.licensePlate),
+  regUniq: uniqueIndex('vehicles_reg_uniq').on(table.licensePlate),
   typeIdx: index('vehicles_type_idx').on(table.vehicleType),
 }));
 
