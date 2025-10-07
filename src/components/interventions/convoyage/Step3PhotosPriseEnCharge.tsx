@@ -31,16 +31,16 @@ interface PhotoWithAnomaly {
 
 const PHOTO_POSITIONS: PhotoPosition[] = [
   { id: 'capot', label: '1. Capot', description: 'Vue face avant complète', required: true },
-  { id: 'aile_av_gauche', label: '2. Aile avant gauche', description: 'Côté conducteur avant', required: true },
-  { id: 'porte_av_gauche', label: '3. Porte avant gauche', description: 'Porte conducteur', required: true },
-  { id: 'porte_ar_gauche', label: '4. Porte arrière gauche', description: 'Porte arrière côté conducteur', required: true },
-  { id: 'aile_ar_gauche', label: '5. Aile arrière gauche', description: 'Arrière côté conducteur', required: true },
-  { id: 'coffre', label: '6. Coffre', description: 'Vue face arrière complète', required: true },
-  { id: 'aile_ar_droite', label: '7. Aile arrière droite', description: 'Arrière côté passager', required: true },
-  { id: 'porte_ar_droite', label: '8. Porte arrière droite', description: 'Porte arrière côté passager', required: true },
-  { id: 'porte_av_droite', label: '9. Porte avant droite', description: 'Porte passager avant', required: true },
-  { id: 'aile_av_droite', label: '10. Aile avant droite', description: 'Côté passager avant', required: true },
-  { id: 'toit', label: '11. Toit', description: 'Vue panoramique du toit', required: true },
+  { id: 'roue_avant_gauche', label: '2. Roue avant gauche', description: 'Roue et passage de roue avant gauche', required: true },
+  { id: 'lateral_gauche', label: '3. Latéral gauche', description: 'Côté conducteur complet', required: true },
+  { id: 'roue_arriere_gauche', label: '4. Roue arrière gauche', description: 'Roue et passage de roue arrière gauche', required: true },
+  { id: 'arriere', label: '5. Arrière', description: 'Vue face arrière complète', required: true },
+  { id: 'coffre', label: '6. Coffre', description: 'Intérieur du coffre', required: true },
+  { id: 'roue_arriere_droite', label: '7. Roue arrière droite', description: 'Roue et passage de roue arrière droite', required: true },
+  { id: 'lateral_droit', label: '8. Latéral droit', description: 'Côté passager complet', required: true },
+  { id: 'roue_avant_droite', label: '9. Roue avant droite', description: 'Roue et passage de roue avant droite', required: true },
+  { id: 'interieur_avant', label: '10. Intérieur avant', description: 'Sièges avant et console centrale', required: true },
+  { id: 'interieur_arriere', label: '11. Intérieur arrière', description: 'Sièges arrière', required: true },
   { id: 'tableau_bord', label: '12. Tableau de bord', description: 'Compteur kilométrique visible', required: true },
 ];
 

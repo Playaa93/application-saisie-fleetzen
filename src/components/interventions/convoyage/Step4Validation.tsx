@@ -62,11 +62,19 @@ export default function Step4Validation({ formData, onNext, onPrevious }: Step4V
             <CardContent className="text-sm space-y-1">
               <div className="flex items-start gap-2">
                 <span className="text-green-600 font-bold">A:</span>
-                <span>{formData.adresseDepart || '-'}</span>
+                <span>
+                  {typeof formData.adresseDepart === 'string'
+                    ? formData.adresseDepart
+                    : formData.adresseDepart?.adresse || '-'}
+                </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 font-bold">B:</span>
-                <span>{formData.adresseArrivee || '-'}</span>
+                <span>
+                  {typeof formData.adresseArrivee === 'string'
+                    ? formData.adresseArrivee
+                    : formData.adresseArrivee?.adresse || '-'}
+                </span>
               </div>
             </CardContent>
           </Card>

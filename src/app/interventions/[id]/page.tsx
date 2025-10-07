@@ -4,11 +4,13 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Calendar, User, Truck, FileText, Image as ImageIcon, MapPin, CheckCircle2, Navigation } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Truck, FileText, Image as ImageIcon, MapPin, CheckCircle2, Navigation, AlertTriangle, ChevronDown } from 'lucide-react';
 import { MobileHeader } from '@/components/mobile/MobileHeader';
 import { AppShell } from '@/components/mobile/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { formatDateShort } from '@/lib/utils';
 import { reverseGeocode, getGoogleMapsUrl, getWazeUrl } from '@/lib/geocoding';
 import { InterventionMap } from '@/components/InterventionMap';
@@ -437,53 +439,114 @@ export default function InterventionDetailPage() {
           </Card>
         )}
 
-        {/* Photos PRISE EN CHARGE (Convoyage) */}
-        {intervention.metadata?.photos?.photosPriseEnCharge && Object.keys(intervention.metadata.photos.photosPriseEnCharge).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <ImageIcon className="w-4 h-4" />
-                Photos de prise en charge
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {Object.entries(intervention.metadata.photos.photosPriseEnCharge).map(([position, photoUrl]) => {
-                  if (!photoUrl || typeof photoUrl !== 'string') return null;
+        {/* Photos PRISE EN CHARGE (Convoyage) avec anomalies intégrées */}
+        {intervention.metadata?.photos?.photosPriseEnCharge && Object.keys(intervention.metadata.photos.photosPriseEnCharge).length > 0 && (() => {
+          // Mapper les anomalies par position pour les intégrer dans l'affichage
+          const anomaliesByPosition: Record<string, { url: string; description: string }> = {};
 
-                  // Mapper les positions techniques en français
-                  const positionLabels: Record<string, string> = {
-                    capot: 'Capot',
-                    arriere: 'Arrière',
-                    lateral_gauche: 'Latéral gauche',
-                    lateral_droit: 'Latéral droit',
-                    roue_avant_gauche: 'Roue avant gauche',
-                    roue_avant_droite: 'Roue avant droite',
-                    roue_arriere_gauche: 'Roue arrière gauche',
-                    roue_arriere_droite: 'Roue arrière droite',
-                    interieur_avant: 'Intérieur avant',
-                    interieur_arriere: 'Intérieur arrière',
-                    tableau_bord: 'Tableau de bord',
-                    coffre: 'Coffre'
-                  };
+          if (intervention.metadata?.photos?.photosAnomalies) {
+            intervention.metadata.photos.photosAnomalies.forEach((anomaly: any) => {
+              if (typeof anomaly === 'object' && anomaly.url && anomaly.position) {
+                anomaliesByPosition[anomaly.position] = {
+                  url: anomaly.url,
+                  description: anomaly.description || ''
+                };
+              }
+            });
+          }
 
-                  return (
-                    <div key={position} className="relative aspect-square rounded-lg overflow-hidden border border-border">
-                      <img
-                        src={photoUrl}
-                        alt={`Photo ${positionLabels[position] || position}`}
-                        className="object-cover w-full h-full"
-                      />
-                      <div className="absolute bottom-2 left-2 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
-                        {positionLabels[position] || position}
+          const positionLabels: Record<string, string> = {
+            capot: 'Capot',
+            arriere: 'Arrière',
+            lateral_gauche: 'Latéral gauche',
+            lateral_droit: 'Latéral droit',
+            roue_avant_gauche: 'Roue avant gauche',
+            roue_avant_droite: 'Roue avant droite',
+            roue_arriere_gauche: 'Roue arrière gauche',
+            roue_arriere_droite: 'Roue arrière droite',
+            interieur_avant: 'Intérieur avant',
+            interieur_arriere: 'Intérieur arrière',
+            tableau_bord: 'Tableau de bord',
+            coffre: 'Coffre'
+          };
+
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Photos de prise en charge
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Object.entries(intervention.metadata.photos.photosPriseEnCharge).map(([position, photoUrl]) => {
+                    if (!photoUrl || typeof photoUrl !== 'string') return null;
+
+                    const hasAnomaly = anomaliesByPosition[position];
+
+                    return (
+                      <div key={position} className="space-y-2">
+                        <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                          <img
+                            src={photoUrl}
+                            alt={`Photo ${positionLabels[position] || position}`}
+                            className="object-cover w-full h-full"
+                          />
+                          <div className="absolute bottom-2 left-2 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+                            {positionLabels[position] || position}
+                          </div>
+                          {hasAnomaly && (
+                            <div className="absolute top-2 right-2">
+                              <Badge variant="destructive" className="flex items-center gap-1 shadow-lg">
+                                <AlertTriangle className="w-3 h-3" />
+                                Anomalie
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        {hasAnomaly && (
+                          <Accordion type="single" collapsible className="border-none">
+                            <AccordionItem value="anomaly" className="border-none">
+                              <AccordionTrigger className="text-xs text-destructive hover:text-destructive/80 py-2 hover:no-underline">
+                                <span className="flex items-center gap-1">
+                                  <ChevronDown className="w-3 h-3" />
+                                  Voir l'anomalie détectée
+                                </span>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="space-y-2 pt-2">
+                                  <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-destructive">
+                                    <img
+                                      src={hasAnomaly.url}
+                                      alt={`Anomalie ${positionLabels[position]}`}
+                                      className="object-cover w-full h-full"
+                                    />
+                                    <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded font-medium">
+                                      ANOMALIE RAPPROCHÉE
+                                    </div>
+                                  </div>
+                                  {hasAnomaly.description && (
+                                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2">
+                                      <p className="text-xs text-foreground">
+                                        <span className="font-semibold">Description:</span> {hasAnomaly.description}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        )}
                       </div>
-                    </div>
-                  );
-                }).filter(Boolean)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                    );
+                  }).filter(Boolean)}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Photos REMISE (Convoyage) */}
         {intervention.metadata?.photos?.photosRemise && Object.keys(intervention.metadata.photos.photosRemise).length > 0 && (
@@ -533,78 +596,6 @@ export default function InterventionDetailPage() {
           </Card>
         )}
 
-        {/* Photos ANOMALIES (Convoyage) */}
-        {intervention.metadata?.photos?.photosAnomalies && intervention.metadata.photos.photosAnomalies.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <ImageIcon className="w-4 h-4" />
-                Photos d'anomalies ({intervention.metadata.photos.photosAnomalies.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {intervention.metadata.photos.photosAnomalies?.map((anomaly, index) => {
-                  // Si c'est une simple URL string (cas legacy)
-                  if (typeof anomaly === 'string') {
-                    return (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
-                        <img
-                          src={anomaly}
-                          alt={`Anomalie ${index + 1}`}
-                          className="object-cover w-full h-full"
-                        />
-                        <div className="absolute bottom-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                          ANOMALIE {index + 1}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Si c'est un objet avec position et description
-                  if (typeof anomaly === 'object' && anomaly.url) {
-                    const positionLabels: Record<string, string> = {
-                      capot: 'Capot',
-                      arriere: 'Arrière',
-                      lateral_gauche: 'Latéral gauche',
-                      lateral_droit: 'Latéral droit',
-                      roue_avant_gauche: 'Roue avant gauche',
-                      roue_avant_droite: 'Roue avant droite',
-                      roue_arriere_gauche: 'Roue arrière gauche',
-                      roue_arriere_droite: 'Roue arrière droite',
-                      interieur_avant: 'Intérieur avant',
-                      interieur_arriere: 'Intérieur arrière',
-                      tableau_bord: 'Tableau de bord',
-                      coffre: 'Coffre'
-                    };
-
-                    return (
-                      <div key={index} className="border border-border rounded-lg p-3">
-                        <div className="relative aspect-square rounded-lg overflow-hidden mb-2">
-                          <img
-                            src={anomaly.url}
-                            alt={`Anomalie ${anomaly.position || index + 1}`}
-                            className="object-cover w-full h-full"
-                          />
-                          <div className="absolute bottom-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                            ANOMALIE - {positionLabels[anomaly.position] || anomaly.position || `#${index + 1}`}
-                          </div>
-                        </div>
-                        {anomaly.description && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            <span className="font-medium">Description:</span> {anomaly.description}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return null;
-                }).filter(Boolean)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Localisation */}
         {((intervention.coordinates?.latitude && intervention.coordinates?.longitude) ||

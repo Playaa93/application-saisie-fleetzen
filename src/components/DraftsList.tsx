@@ -60,6 +60,8 @@ export default function DraftsList({ onResumeDraft, onStartNew }: DraftsListProp
         return '⛽ Livraison Carburant';
       case 'carburant-cuve':
         return '🛢️ Remplissage Cuve';
+      case 'convoyage':
+        return '🚗 Convoyage Véhicule';
       default:
         return type;
     }
@@ -76,6 +78,10 @@ export default function DraftsList({ onResumeDraft, onStartNew }: DraftsListProp
     }
     if (type === 'carburant-cuve') {
       const steps = ['Type de prestation', 'Remplissage cuve', 'Validation'];
+      return `Étape ${step}/${steps.length} - ${steps[step - 1] || ''}`;
+    }
+    if (type === 'convoyage') {
+      const steps = ['Type de prestation', 'Donneur d\'ordre', 'Informations véhicule', 'Photos prise en charge', 'Validation'];
       return `Étape ${step}/${steps.length} - ${steps[step - 1] || ''}`;
     }
     return `Étape ${step}`;
@@ -164,7 +170,7 @@ export default function DraftsList({ onResumeDraft, onStartNew }: DraftsListProp
 
             <CardContent className="space-y-3">
               {/* Informations client/véhicule */}
-              {(draft.formData?.client || draft.formData?.vehicule) && (
+              {(draft.formData?.client || draft.formData?.vehicule || draft.formData?.immatriculation) && (
                 <div className="text-sm space-y-1">
                   {draft.formData.client && (
                     <div className="flex items-center gap-2">
@@ -173,10 +179,16 @@ export default function DraftsList({ onResumeDraft, onStartNew }: DraftsListProp
                       <span>{draft.formData.client}</span>
                     </div>
                   )}
-                  {draft.formData.vehicule && (
+                  {draft.formData.vehicule && typeof draft.formData.vehicule === 'string' && (
                     <div className="flex items-center gap-2 ml-6">
                       <span className="text-muted-foreground">Véhicule:</span>
                       <span className="font-mono">{draft.formData.vehicule}</span>
+                    </div>
+                  )}
+                  {draft.formData.immatriculation && (
+                    <div className="flex items-center gap-2 ml-6">
+                      <span className="text-muted-foreground">Immatriculation:</span>
+                      <span className="font-mono">{draft.formData.immatriculation}</span>
                     </div>
                   )}
                 </div>

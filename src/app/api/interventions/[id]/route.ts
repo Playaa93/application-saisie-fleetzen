@@ -72,8 +72,22 @@ export async function GET(
         clients: !!data.clients,
         vehicles: !!data.vehicles,
         agents: !!data.agents
-      }
+      },
+      metadataKeys: Object.keys(data.metadata || {}),
+      photosKeys: Object.keys(data.metadata?.photos || {})
     }, 'Intervention data fetched successfully');
+
+    // Log metadata.photos structure for debugging
+    if (data.metadata?.photos) {
+      logger.info({
+        interventionId: id,
+        photosStructure: {
+          photosPriseEnCharge: Object.keys(data.metadata.photos.photosPriseEnCharge || {}),
+          photosRemise: Object.keys(data.metadata.photos.photosRemise || {}),
+          photosAnomaliesCount: Array.isArray(data.metadata.photos.photosAnomalies) ? data.metadata.photos.photosAnomalies.length : 0
+        }
+      }, '📸 Photos structure in metadata');
+    }
 
     // Formater la réponse
     const intervention = {
@@ -126,7 +140,8 @@ export async function GET(
     logger.info({
       interventionId: id,
       duration,
-      hasPhotos: intervention.photos.length > 0
+      hasPhotos: intervention.photos.length > 0,
+      hasMetadataPhotos: !!data.metadata?.photos
     }, 'Intervention retrieved successfully');
 
     return NextResponse.json(intervention);
