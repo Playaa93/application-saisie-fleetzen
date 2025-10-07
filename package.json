@@ -73,7 +73,7 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.0.0",
-    "react-hook-form": "^7.50.1",
+    "react-hook-form": "^7.64.0",
     "react-leaflet": "^5.0.0-rc.1",
     "react-pull-to-refresh": "^2.0.1",
     "recharts": "2.15.4",
