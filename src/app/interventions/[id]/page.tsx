@@ -437,6 +437,175 @@ export default function InterventionDetailPage() {
           </Card>
         )}
 
+        {/* Photos PRISE EN CHARGE (Convoyage) */}
+        {intervention.metadata?.photos?.photosPriseEnCharge && Object.keys(intervention.metadata.photos.photosPriseEnCharge).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ImageIcon className="w-4 h-4" />
+                Photos de prise en charge
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(intervention.metadata.photos.photosPriseEnCharge).map(([position, photoUrl]) => {
+                  if (!photoUrl || typeof photoUrl !== 'string') return null;
+
+                  // Mapper les positions techniques en français
+                  const positionLabels: Record<string, string> = {
+                    capot: 'Capot',
+                    arriere: 'Arrière',
+                    lateral_gauche: 'Latéral gauche',
+                    lateral_droit: 'Latéral droit',
+                    roue_avant_gauche: 'Roue avant gauche',
+                    roue_avant_droite: 'Roue avant droite',
+                    roue_arriere_gauche: 'Roue arrière gauche',
+                    roue_arriere_droite: 'Roue arrière droite',
+                    interieur_avant: 'Intérieur avant',
+                    interieur_arriere: 'Intérieur arrière',
+                    tableau_bord: 'Tableau de bord',
+                    coffre: 'Coffre'
+                  };
+
+                  return (
+                    <div key={position} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                      <img
+                        src={photoUrl}
+                        alt={`Photo ${positionLabels[position] || position}`}
+                        className="object-cover w-full h-full"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+                        {positionLabels[position] || position}
+                      </div>
+                    </div>
+                  );
+                }).filter(Boolean)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Photos REMISE (Convoyage) */}
+        {intervention.metadata?.photos?.photosRemise && Object.keys(intervention.metadata.photos.photosRemise).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ImageIcon className="w-4 h-4" />
+                Photos de remise
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(intervention.metadata.photos.photosRemise).map(([position, photoUrl]) => {
+                  if (!photoUrl || typeof photoUrl !== 'string') return null;
+
+                  // Mapper les positions techniques en français
+                  const positionLabels: Record<string, string> = {
+                    capot: 'Capot',
+                    arriere: 'Arrière',
+                    lateral_gauche: 'Latéral gauche',
+                    lateral_droit: 'Latéral droit',
+                    roue_avant_gauche: 'Roue avant gauche',
+                    roue_avant_droite: 'Roue avant droite',
+                    roue_arriere_gauche: 'Roue arrière gauche',
+                    roue_arriere_droite: 'Roue arrière droite',
+                    interieur_avant: 'Intérieur avant',
+                    interieur_arriere: 'Intérieur arrière',
+                    tableau_bord: 'Tableau de bord',
+                    coffre: 'Coffre'
+                  };
+
+                  return (
+                    <div key={position} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                      <img
+                        src={photoUrl}
+                        alt={`Photo ${positionLabels[position] || position}`}
+                        className="object-cover w-full h-full"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-teal-600 text-white text-xs px-2 py-1 rounded">
+                        {positionLabels[position] || position}
+                      </div>
+                    </div>
+                  );
+                }).filter(Boolean)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Photos ANOMALIES (Convoyage) */}
+        {intervention.metadata?.photos?.photosAnomalies && intervention.metadata.photos.photosAnomalies.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ImageIcon className="w-4 h-4" />
+                Photos d'anomalies ({intervention.metadata.photos.photosAnomalies.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {intervention.metadata.photos.photosAnomalies?.map((anomaly, index) => {
+                  // Si c'est une simple URL string (cas legacy)
+                  if (typeof anomaly === 'string') {
+                    return (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                        <img
+                          src={anomaly}
+                          alt={`Anomalie ${index + 1}`}
+                          className="object-cover w-full h-full"
+                        />
+                        <div className="absolute bottom-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                          ANOMALIE {index + 1}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Si c'est un objet avec position et description
+                  if (typeof anomaly === 'object' && anomaly.url) {
+                    const positionLabels: Record<string, string> = {
+                      capot: 'Capot',
+                      arriere: 'Arrière',
+                      lateral_gauche: 'Latéral gauche',
+                      lateral_droit: 'Latéral droit',
+                      roue_avant_gauche: 'Roue avant gauche',
+                      roue_avant_droite: 'Roue avant droite',
+                      roue_arriere_gauche: 'Roue arrière gauche',
+                      roue_arriere_droite: 'Roue arrière droite',
+                      interieur_avant: 'Intérieur avant',
+                      interieur_arriere: 'Intérieur arrière',
+                      tableau_bord: 'Tableau de bord',
+                      coffre: 'Coffre'
+                    };
+
+                    return (
+                      <div key={index} className="border border-border rounded-lg p-3">
+                        <div className="relative aspect-square rounded-lg overflow-hidden mb-2">
+                          <img
+                            src={anomaly.url}
+                            alt={`Anomalie ${anomaly.position || index + 1}`}
+                            className="object-cover w-full h-full"
+                          />
+                          <div className="absolute bottom-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                            ANOMALIE - {positionLabels[anomaly.position] || anomaly.position || `#${index + 1}`}
+                          </div>
+                        </div>
+                        {anomaly.description && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            <span className="font-medium">Description:</span> {anomaly.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return null;
+                }).filter(Boolean)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Localisation */}
         {((intervention.coordinates?.latitude && intervention.coordinates?.longitude) ||
           (intervention.metadata?.latitude && intervention.metadata?.longitude)) && (() => {

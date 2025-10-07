@@ -404,15 +404,15 @@ export default function NouvelleInterventionPage() {
           continue;
         }
 
-        if (key === 'photosPriseEnCharge' && Array.isArray(value)) {
-          const files = value as File[];
-          console.log(`📸 Adding ${files.length} photos PRISE EN CHARGE to FormData`);
-          files.forEach((photo) => {
+        if (key === 'photosPriseEnCharge' && typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          // Gérer les photos avec leurs positions
+          const photosObj = value as Record<string, File>;
+          console.log(`📸 Adding photos PRISE EN CHARGE with positions`);
+          Object.entries(photosObj).forEach(([position, photo]) => {
             if (photo instanceof File && photo.size > 0) {
-              console.log(`  - Photo PRISE EN CHARGE:`, photo.name, photo.size);
-              formDataToSend.append('photosPriseEnCharge', photo);
-            } else {
-              console.warn(`⚠️ Invalid photo PRISE EN CHARGE:`, photo);
+              console.log(`  - Photo PRISE EN CHARGE [${position}]:`, photo.name, photo.size);
+              // Envoyer avec un nom qui inclut la position
+              formDataToSend.append(`photosPriseEnCharge_${position}`, photo);
             }
           });
           continue;
@@ -427,6 +427,21 @@ export default function NouvelleInterventionPage() {
               formDataToSend.append('photosRemise', photo);
             } else {
               console.warn(`⚠️ Invalid photo REMISE:`, photo);
+            }
+          });
+          continue;
+        }
+
+        // NOUVEAU: Gérer les photos d'anomalies
+        if (key === 'photosAnomalies' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos ANOMALIES to FormData`);
+          files.forEach((photo) => {
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo ANOMALIE:`, photo.name, photo.size);
+              formDataToSend.append('photosAnomalies', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo ANOMALIE:`, photo);
             }
           });
           continue;

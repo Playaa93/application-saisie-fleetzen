@@ -112,7 +112,7 @@ export function AddressAutocomplete({
   return (
     <Input
       ref={inputRef}
-      value={value}
+      value={value || ''}
       onChange={handleChange}
       placeholder={placeholder}
       disabled={disabled}

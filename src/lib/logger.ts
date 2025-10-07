@@ -59,9 +59,41 @@ const logger = winston.createLogger({
       format: isDevelopment
         ? winston.format.combine(
             winston.format.colorize(),
-            winston.format.printf(({ timestamp, level, message, ...meta }) => {
-              const metaStr = Object.keys(meta).length > 0 ? JSON.stringify(meta, null, 2) : '';
-              return `${timestamp} [${level}]: ${message} ${metaStr}`;
+            winston.format.printf((info) => {
+              const { timestamp, level, message, metadata, env, service, ...rest } = info;
+
+              // Build output with timestamp and level
+              let output = `${timestamp || new Date().toISOString()} [${level}]`;
+
+              // Handle different Winston call patterns:
+              // 1. logger.info('message')
+              // 2. logger.info({ data }, 'message')
+              // 3. logger.info({ data })
+
+              // If message is a string, add it
+              if (message && typeof message === 'string') {
+                output += `: ${message}`;
+              }
+              // If message is an object (when using logger.info({ data })), treat it as data
+              else if (message && typeof message === 'object') {
+                const messageData = message;
+                // Merge message object with rest
+                Object.assign(rest, messageData);
+              }
+
+              // Remove internal fields
+              delete rest.env;
+              delete rest.service;
+              delete rest.metadata;
+              delete rest.timestamp;
+              delete rest.level;
+
+              // Add data if exists
+              if (Object.keys(rest).length > 0) {
+                output += `\n${JSON.stringify(rest, null, 2)}`;
+              }
+
+              return output;
             })
           )
         : winston.format.json(),

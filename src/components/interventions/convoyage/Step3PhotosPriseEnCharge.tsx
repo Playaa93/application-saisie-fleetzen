@@ -118,6 +118,7 @@ export default function Step3PhotosPriseEnCharge({ formData, onNext, onPrevious 
   };
 
   const isComplete = () => {
+    // PRODUCTION: Toutes les 12 photos sont obligatoires
     return PHOTO_POSITIONS.every(pos => photosData[pos.id].mainPhoto !== null);
   };
 
@@ -125,12 +126,17 @@ export default function Step3PhotosPriseEnCharge({ formData, onNext, onPrevious 
     e.preventDefault();
 
     if (!isComplete()) {
-      alert('⚠️ Veuillez prendre les 12 photos obligatoires avant de continuer');
+      alert('⚠️ Veuillez prendre les 12 photos obligatoires du véhicule pour continuer');
       return;
     }
 
-    // Extract main photos
-    const photoFiles = PHOTO_POSITIONS.map(pos => photosData[pos.id].mainPhoto).filter((p): p is File => p !== null);
+    // Extract main photos with their positions
+    const photosByPosition: Record<string, File> = {};
+    PHOTO_POSITIONS.forEach(pos => {
+      if (photosData[pos.id].mainPhoto) {
+        photosByPosition[pos.id] = photosData[pos.id].mainPhoto!;
+      }
+    });
 
     // Extract anomaly photos
     const anomalyPhotos = Object.values(photosData)
@@ -148,7 +154,7 @@ export default function Step3PhotosPriseEnCharge({ formData, onNext, onPrevious 
       }));
 
     onNext({
-      photosPriseEnCharge: photoFiles,
+      photosPriseEnCharge: photosByPosition, // Envoyer un objet avec positions
       photosAnomalies: anomalyPhotos,
       anomaliesMetadata: anomalies,
     });

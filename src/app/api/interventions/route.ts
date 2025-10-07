@@ -147,6 +147,27 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const formData = await request.formData();
 
+    // 🔍 LOG FORMDATA CONTENT
+    const formDataEntries: Record<string, any> = {};
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        formDataEntries[key] = {
+          type: 'File',
+          name: value.name,
+          size: value.size,
+          type_mime: value.type,
+          lastModified: value.lastModified
+        };
+      } else {
+        formDataEntries[key] = value;
+      }
+    }
+    logger.info({
+      formDataKeys: Array.from(formData.keys()),
+      formDataEntries,
+      totalEntries: Array.from(formData.entries()).length
+    }, '📋 FormData received in POST');
+
     // Récupérer le type d'intervention en texte
     const interventionTypeName = formData.get('type') as string;
 
@@ -311,10 +332,43 @@ export async function POST(request: NextRequest) {
     const photosJaugesApresFiles = formData.getAll('photosJaugesApres') as File[];
     const photoTicketFiles = formData.getAll('photoTicket') as File[];
 
-    // Photos spécifiques à "Convoyage"
-    const photosPriseEnChargeFiles = formData.getAll('photosPriseEnCharge') as File[];
-    const photosRemiseFiles = formData.getAll('photosRemise') as File[];
+    // Photos spécifiques à "Convoyage" avec positions
+    const photosPriseEnChargeByPosition: Record<string, File> = {};
+    const photosRemiseByPosition: Record<string, File> = {};
+
+    // Récupérer les photos de prise en charge avec leurs positions
+    const positions = ['capot', 'arriere', 'lateral_gauche', 'lateral_droit',
+                      'roue_avant_gauche', 'roue_avant_droite', 'roue_arriere_gauche',
+                      'roue_arriere_droite', 'interieur_avant', 'interieur_arriere',
+                      'tableau_bord', 'coffre'];
+
+    positions.forEach(position => {
+      const priseEnChargeFile = formData.get(`photosPriseEnCharge_${position}`) as File | null;
+      if (priseEnChargeFile) {
+        photosPriseEnChargeByPosition[position] = priseEnChargeFile;
+      }
+
+      const remiseFile = formData.get(`photosRemise_${position}`) as File | null;
+      if (remiseFile) {
+        photosRemiseByPosition[position] = remiseFile;
+      }
+    });
+
     const photosAnomaliesFiles = formData.getAll('photosAnomalies') as File[];
+
+    // 🔍 LOG DÉTAILLÉ DES PHOTOS ANOMALIES
+    logger.info({
+      anomaliesCount: photosAnomaliesFiles.length,
+      anomaliesDetails: photosAnomaliesFiles.map((f, idx) => ({
+        index: idx,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        isFile: f instanceof File,
+        isBlob: f instanceof Blob,
+        hasArrayBuffer: typeof f.arrayBuffer === 'function'
+      }))
+    }, '🔍 Detailed anomaly photos info');
 
     logger.debug({
       photoCounts: {
@@ -324,8 +378,8 @@ export async function POST(request: NextRequest) {
         jaugesAvant: photosJaugesAvantFiles.length,
         jaugesApres: photosJaugesApresFiles.length,
         ticket: photoTicketFiles.length,
-        priseEnCharge: photosPriseEnChargeFiles.length,
-        remise: photosRemiseFiles.length,
+        priseEnCharge: Object.keys(photosPriseEnChargeByPosition).length,
+        remise: Object.keys(photosRemiseByPosition).length,
         anomalies: photosAnomaliesFiles.length,
       }
     }, 'Photo files received');
@@ -336,8 +390,8 @@ export async function POST(request: NextRequest) {
     const photosJaugesAvantUrls: string[] = [];
     const photosJaugesApresUrls: string[] = [];
     const photoTicketUrls: string[] = [];
-    const photosPriseEnChargeUrls: string[] = [];
-    const photosRemiseUrls: string[] = [];
+    const photosPriseEnChargeUrls: Record<string, string> = {};
+    const photosRemiseUrls: Record<string, string> = {};
     const photosAnomaliesUrls: string[] = [];
 
     const photoRecordsToInsert: Array<{
@@ -355,6 +409,20 @@ export async function POST(request: NextRequest) {
 
     // Helper function for photo upload
     const uploadPhoto = async (photoFile: File, type: string, index: number): Promise<string | null> => {
+      // 🔍 LOG 1: Received object inspection
+      logger.info({
+        type,
+        index,
+        photoFileType: typeof photoFile,
+        isFile: photoFile instanceof File,
+        isBlob: photoFile instanceof Blob,
+        isBuffer: Buffer.isBuffer(photoFile),
+        hasArrayBuffer: typeof photoFile?.arrayBuffer === 'function',
+        size: photoFile?.size,
+        name: photoFile?.name,
+        mimeType: photoFile?.type
+      }, `📸 uploadPhoto() START - ${type}-${index}`);
+
       if (!photoFile || photoFile.size === 0) {
         logger.warn({ type, index }, '⚠️ Photo file is null or empty');
         return null;
@@ -362,8 +430,40 @@ export async function POST(request: NextRequest) {
 
       try {
         // ✅ CONVERSION CRITIQUE: File -> ArrayBuffer pour Supabase Storage
-        const arrayBuffer = await photoFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        let buffer: Buffer;
+
+        // Check if photoFile has arrayBuffer method (true File object)
+        if (typeof photoFile.arrayBuffer === 'function') {
+          logger.info({ type, index }, '✅ photoFile has arrayBuffer() method, converting...');
+          const arrayBuffer = await photoFile.arrayBuffer();
+          buffer = Buffer.from(arrayBuffer);
+          logger.info({ type, index, bufferSize: buffer.length }, '✅ ArrayBuffer conversion successful');
+        } else {
+          // Fallback: photoFile might already be a Blob or Buffer
+          logger.warn({
+            type,
+            index,
+            photoFileType: typeof photoFile,
+            constructor: photoFile.constructor?.name,
+            prototypeChain: Object.getPrototypeOf(photoFile)?.constructor?.name
+          }, '⚠️ photoFile missing arrayBuffer() - FALLBACK BRANCH ENTERED');
+
+          // If it's already a Buffer
+          if (Buffer.isBuffer(photoFile)) {
+            logger.info({ type, index }, '✅ photoFile is already a Buffer');
+            buffer = photoFile;
+          } else {
+            // Last resort: return null with detailed reason
+            logger.error({
+              type,
+              index,
+              reason: 'Not a File, not a Buffer, cannot convert',
+              photoFileType: typeof photoFile,
+              constructor: photoFile.constructor?.name
+            }, '❌ UPLOAD FAILED: Cannot convert object to Buffer');
+            return null;
+          }
+        }
 
         const fileExtension = photoFile.name.split('.').pop() || 'jpg';
         const fileName = `${data.id}/${type}-${Date.now()}-${index}.${fileExtension}`;
@@ -456,16 +556,16 @@ export async function POST(request: NextRequest) {
       if (url) photoTicketUrls.push(url);
     }
 
-    // Upload des photos PRISE EN CHARGE (pour convoyage)
-    for (let i = 0; i < photosPriseEnChargeFiles.length; i++) {
-      const url = await uploadPhoto(photosPriseEnChargeFiles[i], 'prise-en-charge', i);
-      if (url) photosPriseEnChargeUrls.push(url);
+    // Upload des photos PRISE EN CHARGE avec positions (pour convoyage)
+    for (const [position, file] of Object.entries(photosPriseEnChargeByPosition)) {
+      const url = await uploadPhoto(file, `prise-en-charge-${position}`, 0);
+      if (url) photosPriseEnChargeUrls[position] = url;
     }
 
-    // Upload des photos REMISE (pour convoyage)
-    for (let i = 0; i < photosRemiseFiles.length; i++) {
-      const url = await uploadPhoto(photosRemiseFiles[i], 'remise', i);
-      if (url) photosRemiseUrls.push(url);
+    // Upload des photos REMISE avec positions (pour convoyage)
+    for (const [position, file] of Object.entries(photosRemiseByPosition)) {
+      const url = await uploadPhoto(file, `remise-${position}`, 0);
+      if (url) photosRemiseUrls[position] = url;
     }
 
     // Upload des photos ANOMALIES (pour convoyage - dégâts détectés)
@@ -490,7 +590,7 @@ export async function POST(request: NextRequest) {
     // Mettre à jour l'intervention avec les URLs des photos séparées
     if (photosAvantUrls.length > 0 || photosApresUrls.length > 0 || photoManometreUrls.length > 0 ||
         photosJaugesAvantUrls.length > 0 || photosJaugesApresUrls.length > 0 || photoTicketUrls.length > 0 ||
-        photosPriseEnChargeUrls.length > 0 || photosRemiseUrls.length > 0 || photosAnomaliesUrls.length > 0) {
+        Object.keys(photosPriseEnChargeUrls).length > 0 || Object.keys(photosRemiseUrls).length > 0 || photosAnomaliesUrls.length > 0) {
       const photoMetadata = {
         photosAvant: photosAvantUrls.map((url, idx) => ({
           url,
@@ -522,16 +622,8 @@ export async function POST(request: NextRequest) {
           uploadedAt: new Date().toISOString(),
           index: idx
         })),
-        photosPriseEnCharge: photosPriseEnChargeUrls.map((url, idx) => ({
-          url,
-          uploadedAt: new Date().toISOString(),
-          index: idx
-        })),
-        photosRemise: photosRemiseUrls.map((url, idx) => ({
-          url,
-          uploadedAt: new Date().toISOString(),
-          index: idx
-        })),
+        photosPriseEnCharge: photosPriseEnChargeUrls, // Objet avec positions comme clés
+        photosRemise: photosRemiseUrls, // Objet avec positions comme clés
         photosAnomalies: photosAnomaliesUrls.map((url, idx) => ({
           url,
           uploadedAt: new Date().toISOString(),
@@ -563,8 +655,8 @@ export async function POST(request: NextRequest) {
             jaugesAvant: photosJaugesAvantUrls.length,
             jaugesApres: photosJaugesApresUrls.length,
             ticket: photoTicketUrls.length,
-            priseEnCharge: photosPriseEnChargeUrls.length,
-            remise: photosRemiseUrls.length,
+            priseEnCharge: Object.keys(photosPriseEnChargeUrls).length,
+            remise: Object.keys(photosRemiseUrls).length,
             anomalies: photosAnomaliesUrls.length,
           },
         });
@@ -572,7 +664,7 @@ export async function POST(request: NextRequest) {
 
       const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
         photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length +
-        photosPriseEnChargeUrls.length + photosRemiseUrls.length + photosAnomaliesUrls.length;
+        Object.keys(photosPriseEnChargeUrls).length + Object.keys(photosRemiseUrls).length + photosAnomaliesUrls.length;
 
       logger.info({
         interventionId: data.id,
@@ -583,8 +675,8 @@ export async function POST(request: NextRequest) {
           jaugesAvant: photosJaugesAvantUrls.length,
           jaugesApres: photosJaugesApresUrls.length,
           ticket: photoTicketUrls.length,
-          priseEnCharge: photosPriseEnChargeUrls.length,
-          remise: photosRemiseUrls.length,
+          priseEnCharge: Object.keys(photosPriseEnChargeUrls).length,
+          remise: Object.keys(photosRemiseUrls).length,
           anomalies: photosAnomaliesUrls.length,
           total: totalPhotos
         }
@@ -594,7 +686,7 @@ export async function POST(request: NextRequest) {
     const duration = Date.now() - startTime;
     const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
       photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length +
-      photosPriseEnChargeUrls.length + photosRemiseUrls.length + photosAnomaliesUrls.length;
+      Object.keys(photosPriseEnChargeUrls).length + Object.keys(photosRemiseUrls).length + photosAnomaliesUrls.length;
 
     logger.info({
       interventionId: data.id,
