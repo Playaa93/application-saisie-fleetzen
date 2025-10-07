@@ -87,6 +87,19 @@ This project has access to **Supabase MCP** for direct database operations:
 
 **Use MCP tools for all database operations** - they are faster and more reliable than manual SQL scripts.
 
+## 📦 Package Manager
+
+**IMPORTANT: This project uses pnpm**
+
+- ✅ **Use pnpm** for all package management operations
+- ✅ `pnpm install` - Install dependencies
+- ✅ `pnpm add <package>` - Add new package
+- ✅ `pnpm dev` - Start development server
+- ✅ `pnpm build` - Build for production
+- ❌ **DO NOT use npm or yarn** - causes lock file conflicts
+
+**Lock file**: Only `pnpm-lock.yaml` should exist (no `package-lock.json` or `yarn.lock`)
+
 ## Project Context
 
 *Combined from: Next.js 15, shadcn/ui*

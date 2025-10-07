@@ -62,13 +62,14 @@ export function InterventionMapClient({
   }
 
   return (
-    <div className={className}>
+    <div className={className} style={{ maxHeight: '400px' }}>
       <MapContainer
         center={[latitude, longitude]}
         zoom={15}
         scrollWheelZoom={false}
         className="h-full w-full rounded-lg"
         ref={mapRef}
+        style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
           url={tileUrl}

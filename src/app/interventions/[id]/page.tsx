@@ -596,6 +596,50 @@ export default function InterventionDetailPage() {
           </Card>
         )}
 
+        {/* Anomalies SANS position (format legacy - fallback) */}
+        {intervention.metadata?.photos?.photosAnomalies && Array.isArray(intervention.metadata.photos.photosAnomalies) &&
+         intervention.metadata.photos.photosAnomalies.some((a: any) =>
+           (typeof a === 'string') || (typeof a === 'object' && a !== null && !a.position)
+         ) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                Anomalies supplémentaires
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {intervention.metadata.photos.photosAnomalies
+                  .filter((a: any) => (typeof a === 'string') || (typeof a === 'object' && a !== null && !a.position))
+                  .map((anomaly: any, idx: number) => {
+                    const url = typeof anomaly === 'string' ? anomaly : anomaly.url;
+                    const desc = typeof anomaly === 'object' && anomaly !== null ? anomaly.description : '';
+
+                    return (
+                      <div key={idx} className="space-y-2">
+                        <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-orange-500">
+                          <img
+                            src={url}
+                            alt={`Anomalie ${idx + 1}`}
+                            className="object-cover w-full h-full"
+                          />
+                          <div className="absolute top-2 left-2 bg-orange-600 text-white text-xs px-2 py-1 rounded font-medium">
+                            ANOMALIE #{idx + 1}
+                          </div>
+                        </div>
+                        {desc && (
+                          <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg p-2">
+                            <p className="text-xs text-foreground">{desc}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Localisation */}
         {((intervention.coordinates?.latitude && intervention.coordinates?.longitude) ||
@@ -620,7 +664,7 @@ export default function InterventionDetailPage() {
                   longitude={lng}
                   address={address || undefined}
                   accuracy={accuracy || undefined}
-                  className="h-48 w-full rounded-lg mb-3"
+                  className="h-[200px] w-full rounded-lg mb-3"
                 />
 
                 {/* Adresse géocodée */}
