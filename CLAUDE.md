@@ -40,6 +40,43 @@ Problème: Module @supabase/ssr introuvable
 
 **AUDIT DU CODE (2025-10-05)**: Un audit complet a été réalisé avec un score global de 7.5/10. Consultez [`docs/AUDIT_CODE_2025.md`](docs/AUDIT_CODE_2025.md) pour les recommandations détaillées sur la sécurité, les performances, la qualité du code et le plan d'action priorisé.
 
+## 🚗 Fonctionnalité Convoyage en Cours
+
+**IMPORTANT**: Pour toute tâche liée au convoyage de véhicules, **TOUJOURS consulter** ces documents:
+
+### Documentation principale
+- [`docs/CONVOYAGE_IMPLEMENTATION.md`](docs/CONVOYAGE_IMPLEMENTATION.md) - Implémentation technique complète
+- [`docs/CONVOYAGE_UX_IMPROVEMENTS.md`](docs/CONVOYAGE_UX_IMPROVEMENTS.md) - Améliorations UX 2025
+
+### Résumé implémentation
+- ✅ État d'avancement: **85% terminé** (ajout Google Maps, Combobox, Anomalies)
+- 🏗️ Architecture: 12 positions photos + signatures + lettre de voiture
+- 🎨 UX moderne: Autocomplete adresses, sélecteurs visuels, détection anomalies
+
+### Améliorations UX récentes (2025-10-06)
+1. **Google Maps Places Autocomplete** - Toutes les adresses (donneur d'ordre, départ, arrivée)
+2. **Combobox Marques/Modèles** - 150+ marques, 3000+ modèles avec filtrage
+3. **Radio Group Couleurs** - Sélection visuelle (12 couleurs standards)
+4. **Système Anomalies** - Photos rapprochées + descriptions par position
+
+**Configuration**: Clé API Google Maps configurée dans `.env.local` (voir documentation UX)
+- 🔧 Spécifications techniques pour chaque composant
+- 📚 Références légales (CMR, Code des transports)
+
+**Travaux complétés**:
+- Base de données (migration + table `vehicle_handover_docs`)
+- Types TypeScript (`ConvoyageFormData`)
+- Step 1: Donneur d'ordre (formulaire)
+- Step 2: Informations véhicule (formulaire)
+
+**Travaux restants** (~7h):
+- Step 3: Photos prise en charge (12 positions guidées)
+- Step 4: Lettre de voiture départ + signatures
+- Step 5: Photos remise + lettre arrivée
+- Orchestrateur ConvoyageSteps
+- Intégration dans page principale
+- Modifications API
+
 ## MCP Tools Available
 
 This project has access to **Supabase MCP** for direct database operations:

@@ -86,6 +86,16 @@ export default function Step1TypePrestation({ onNext }: Step1TypePrestationProps
       ),
       description: 'Remplissage de la cuve mobile'
     },
+    {
+      id: 'convoyage',
+      label: 'Convoyage',
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+      description: 'Transport de véhicule du point A au point B'
+    },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {

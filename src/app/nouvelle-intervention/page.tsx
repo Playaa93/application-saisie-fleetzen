@@ -10,6 +10,7 @@ import Step1TypePrestation from '@/components/interventions/Step1TypePrestation'
 import LavageSteps from '@/components/interventions/LavageSteps';
 import CarburantLivraisonSteps from '@/components/interventions/CarburantLivraisonSteps';
 import CarburantCuveSteps from '@/components/interventions/CarburantCuveSteps';
+import ConvoyageSteps from '@/components/interventions/ConvoyageSteps';
 import DraftsList from '@/components/DraftsList';
 import { BottomNav } from '@/components/mobile/BottomNav';
 import { requestGeolocation, type GeolocationData } from '@/hooks/useGeolocation';
@@ -228,6 +229,16 @@ export default function NouvelleInterventionPage() {
       ];
     }
 
+    if (typePrestation === 'convoyage') {
+      return [
+        { number: 1, label: 'Type de prestation', completed: true },
+        { number: 2, label: 'Donneur d\'ordre', completed: currentStep > 2 },
+        { number: 3, label: 'Véhicule', completed: currentStep > 3 },
+        { number: 4, label: 'Photos prise en charge', completed: currentStep > 4 },
+        { number: 5, label: 'Validation', completed: false },
+      ];
+    }
+
     return [];
   };
 
@@ -271,7 +282,8 @@ export default function NouvelleInterventionPage() {
       ...formData,  // ← formData en second (ne devrait pas contenir photos)
       type: typePrestation === 'lavage' ? 'Lavage Véhicule' :
             typePrestation === 'carburant-livraison' ? 'Livraison Carburant' :
-            typePrestation === 'carburant-cuve' ? 'Remplissage Cuve' : null,
+            typePrestation === 'carburant-cuve' ? 'Remplissage Cuve' :
+            typePrestation === 'convoyage' ? 'Convoyage Véhicule' : null,
       // Add GPS data if available
       ...(gpsData && {
         latitude: gpsData.latitude,
@@ -387,6 +399,34 @@ export default function NouvelleInterventionPage() {
               formDataToSend.append('photoTicket', photo);
             } else {
               console.warn(`⚠️ Invalid photo TICKET:`, photo);
+            }
+          });
+          continue;
+        }
+
+        if (key === 'photosPriseEnCharge' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos PRISE EN CHARGE to FormData`);
+          files.forEach((photo) => {
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo PRISE EN CHARGE:`, photo.name, photo.size);
+              formDataToSend.append('photosPriseEnCharge', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo PRISE EN CHARGE:`, photo);
+            }
+          });
+          continue;
+        }
+
+        if (key === 'photosRemise' && Array.isArray(value)) {
+          const files = value as File[];
+          console.log(`📸 Adding ${files.length} photos REMISE to FormData`);
+          files.forEach((photo) => {
+            if (photo instanceof File && photo.size > 0) {
+              console.log(`  - Photo REMISE:`, photo.name, photo.size);
+              formDataToSend.append('photosRemise', photo);
+            } else {
+              console.warn(`⚠️ Invalid photo REMISE:`, photo);
             }
           });
           continue;
@@ -661,6 +701,17 @@ export default function NouvelleInterventionPage() {
 
                 {typePrestation === 'carburant-cuve' && currentStep > 1 && (
                   <CarburantCuveSteps
+                    currentStep={currentStep - 1}
+                    formData={formData}
+                    onNext={handleNext}
+                    onPrevious={handlePrevious}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                  />
+                )}
+
+                {typePrestation === 'convoyage' && currentStep > 1 && (
+                  <ConvoyageSteps
                     currentStep={currentStep - 1}
                     formData={formData}
                     onNext={handleNext}

@@ -200,12 +200,17 @@ export async function POST(request: NextRequest) {
 
     logger.debug({ metadataKeys: Object.keys(metadata) }, 'Metadata captured');
 
-    // Gérer le client_id : utiliser un client interne pour "Remplissage Cuve"
+    // Gérer le client_id : utiliser un client interne pour "Remplissage Cuve" et "Convoyage"
     let clientId = getFormValue('clientId');
 
-    // Si pas de clientId ET que c'est un "Remplissage Cuve", créer/utiliser client interne
-    if (!clientId && interventionTypeName === 'Remplissage Cuve') {
-      logger.info({ interventionTypeName }, 'Remplissage Cuve detected - looking up internal client');
+    // Si pas de clientId ET que c'est un type spécial, créer/utiliser client interne
+    const needsInternalClient = !clientId && (
+      interventionTypeName === 'Remplissage Cuve' ||
+      interventionTypeName === 'Convoyage Véhicule'
+    );
+
+    if (needsInternalClient) {
+      logger.info({ interventionTypeName }, 'Special intervention type - looking up internal client');
 
       // Use service role for internal operations
       const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
@@ -306,6 +311,11 @@ export async function POST(request: NextRequest) {
     const photosJaugesApresFiles = formData.getAll('photosJaugesApres') as File[];
     const photoTicketFiles = formData.getAll('photoTicket') as File[];
 
+    // Photos spécifiques à "Convoyage"
+    const photosPriseEnChargeFiles = formData.getAll('photosPriseEnCharge') as File[];
+    const photosRemiseFiles = formData.getAll('photosRemise') as File[];
+    const photosAnomaliesFiles = formData.getAll('photosAnomalies') as File[];
+
     logger.debug({
       photoCounts: {
         avant: photosAvantFiles.length,
@@ -314,6 +324,9 @@ export async function POST(request: NextRequest) {
         jaugesAvant: photosJaugesAvantFiles.length,
         jaugesApres: photosJaugesApresFiles.length,
         ticket: photoTicketFiles.length,
+        priseEnCharge: photosPriseEnChargeFiles.length,
+        remise: photosRemiseFiles.length,
+        anomalies: photosAnomaliesFiles.length,
       }
     }, 'Photo files received');
 
@@ -323,6 +336,9 @@ export async function POST(request: NextRequest) {
     const photosJaugesAvantUrls: string[] = [];
     const photosJaugesApresUrls: string[] = [];
     const photoTicketUrls: string[] = [];
+    const photosPriseEnChargeUrls: string[] = [];
+    const photosRemiseUrls: string[] = [];
+    const photosAnomaliesUrls: string[] = [];
 
     const photoRecordsToInsert: Array<{
       intervention_id: string;
@@ -440,6 +456,24 @@ export async function POST(request: NextRequest) {
       if (url) photoTicketUrls.push(url);
     }
 
+    // Upload des photos PRISE EN CHARGE (pour convoyage)
+    for (let i = 0; i < photosPriseEnChargeFiles.length; i++) {
+      const url = await uploadPhoto(photosPriseEnChargeFiles[i], 'prise-en-charge', i);
+      if (url) photosPriseEnChargeUrls.push(url);
+    }
+
+    // Upload des photos REMISE (pour convoyage)
+    for (let i = 0; i < photosRemiseFiles.length; i++) {
+      const url = await uploadPhoto(photosRemiseFiles[i], 'remise', i);
+      if (url) photosRemiseUrls.push(url);
+    }
+
+    // Upload des photos ANOMALIES (pour convoyage - dégâts détectés)
+    for (let i = 0; i < photosAnomaliesFiles.length; i++) {
+      const url = await uploadPhoto(photosAnomaliesFiles[i], 'anomalie', i);
+      if (url) photosAnomaliesUrls.push(url);
+    }
+
     if (photoRecordsToInsert.length > 0) {
       const { error: photoInsertError } = await storageClient
         .from('intervention_photos')
@@ -455,7 +489,8 @@ export async function POST(request: NextRequest) {
 
     // Mettre à jour l'intervention avec les URLs des photos séparées
     if (photosAvantUrls.length > 0 || photosApresUrls.length > 0 || photoManometreUrls.length > 0 ||
-        photosJaugesAvantUrls.length > 0 || photosJaugesApresUrls.length > 0 || photoTicketUrls.length > 0) {
+        photosJaugesAvantUrls.length > 0 || photosJaugesApresUrls.length > 0 || photoTicketUrls.length > 0 ||
+        photosPriseEnChargeUrls.length > 0 || photosRemiseUrls.length > 0 || photosAnomaliesUrls.length > 0) {
       const photoMetadata = {
         photosAvant: photosAvantUrls.map((url, idx) => ({
           url,
@@ -486,6 +521,21 @@ export async function POST(request: NextRequest) {
           url,
           uploadedAt: new Date().toISOString(),
           index: idx
+        })),
+        photosPriseEnCharge: photosPriseEnChargeUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photosRemise: photosRemiseUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
+        })),
+        photosAnomalies: photosAnomaliesUrls.map((url, idx) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          index: idx
         }))
       };
 
@@ -513,12 +563,16 @@ export async function POST(request: NextRequest) {
             jaugesAvant: photosJaugesAvantUrls.length,
             jaugesApres: photosJaugesApresUrls.length,
             ticket: photoTicketUrls.length,
+            priseEnCharge: photosPriseEnChargeUrls.length,
+            remise: photosRemiseUrls.length,
+            anomalies: photosAnomaliesUrls.length,
           },
         });
       }
 
       const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
-        photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length;
+        photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length +
+        photosPriseEnChargeUrls.length + photosRemiseUrls.length + photosAnomaliesUrls.length;
 
       logger.info({
         interventionId: data.id,
@@ -529,6 +583,9 @@ export async function POST(request: NextRequest) {
           jaugesAvant: photosJaugesAvantUrls.length,
           jaugesApres: photosJaugesApresUrls.length,
           ticket: photoTicketUrls.length,
+          priseEnCharge: photosPriseEnChargeUrls.length,
+          remise: photosRemiseUrls.length,
+          anomalies: photosAnomaliesUrls.length,
           total: totalPhotos
         }
       }, 'Photos uploaded and metadata updated');
@@ -536,7 +593,8 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime;
     const totalPhotos = photosAvantUrls.length + photosApresUrls.length + photoManometreUrls.length +
-      photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length;
+      photosJaugesAvantUrls.length + photosJaugesApresUrls.length + photoTicketUrls.length +
+      photosPriseEnChargeUrls.length + photosRemiseUrls.length + photosAnomaliesUrls.length;
 
     logger.info({
       interventionId: data.id,

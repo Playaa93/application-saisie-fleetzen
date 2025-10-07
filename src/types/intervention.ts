@@ -85,6 +85,14 @@ export interface PhotoFile {
   timestamp: Date;
 }
 
+export interface PhotoAnomaly {
+  position: string;
+  description: string;
+  hasPhoto: boolean;
+  photoUrl?: string;
+  timestamp?: string;
+}
+
 export interface LavageFormData {
   type: 'lavage';
   vehicleId: string | null;
@@ -153,10 +161,50 @@ export interface CarburantCuveFormData {
   commentaires?: string;
 }
 
+export interface ConvoyageFormData {
+  type: 'convoyage';
+  vehicleId: string | null;
+  clientId: string | null;
+  notes?: string;
+  // Step 1: Donneur d'ordre
+  donneurOrdreNom?: string;
+  donneurOrdreAdresse?: string;
+  donneurOrdreContact?: string;
+  adresseDepart?: string;
+  adresseArrivee?: string;
+  observations?: string;
+  // Step 2: Vehicle info
+  immatriculation?: string;
+  vin?: string;
+  marque?: string;
+  modele?: string;
+  couleur?: string;
+  kilometrage?: number;
+  etatCarburant?: string;
+  // Step 3: Photos prise en charge (12 positions)
+  photosPriseEnCharge?: File[];
+  photosAnomalies?: File[]; // Photos rapprochées des anomalies
+  anomaliesMetadata?: Array<{
+    position: string;
+    description: string;
+    hasPhoto: boolean;
+  }>;
+  // Step 4: Lettre de voiture départ
+  signatureAgentDepart?: string; // base64
+  signatureClientDepart?: string; // base64
+  observationsDepart?: string;
+  // Step 5: Photos remise + lettre arrivée (12 positions)
+  photosRemise?: File[];
+  signatureAgentArrivee?: string; // base64
+  signatureClientArrivee?: string; // base64
+  observationsArrivee?: string;
+}
+
 export type InterventionFormData =
   | LavageFormData
   | CarburantLivraisonFormData
-  | CarburantCuveFormData;
+  | CarburantCuveFormData
+  | ConvoyageFormData;
 
 // Photo metadata in stored interventions
 export interface PhotoMetadata {

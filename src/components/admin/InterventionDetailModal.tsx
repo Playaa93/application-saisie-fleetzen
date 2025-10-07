@@ -24,6 +24,8 @@ export type InterventionDetail = {
       photosJaugesAvant?: Array<{ url: string }>;
       photosJaugesApres?: Array<{ url: string }>;
       photoTicket?: Array<{ url: string }>;
+      photosPriseEnCharge?: Array<{ url: string }>;
+      photosRemise?: Array<{ url: string }>;
     };
     [key: string]: any;
   };
@@ -324,6 +326,62 @@ export function InterventionDetailModal({ open, onOpenChange, intervention }: In
                       />
                       <div className="absolute bottom-2 left-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded">
                         TICKET
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Photos Prise en Charge (Convoyage) */}
+            {photos?.photosPriseEnCharge && photos.photosPriseEnCharge.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Photos Prise en Charge ({photos.photosPriseEnCharge.length})</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {photos.photosPriseEnCharge.map((photo, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-square rounded-lg overflow-hidden border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => openLightbox(photos.photosPriseEnCharge!, index, 'Prise en Charge')}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={`Prise en charge ${index + 1}`}
+                        className="object-cover w-full h-full"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+                        PEC #{index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Photos Remise (Convoyage) */}
+            {photos?.photosRemise && photos.photosRemise.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Photos Remise ({photos.photosRemise.length})</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {photos.photosRemise.map((photo, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-square rounded-lg overflow-hidden border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => openLightbox(photos.photosRemise!, index, 'Remise')}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={`Remise ${index + 1}`}
+                        className="object-cover w-full h-full"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-teal-600 text-white text-xs px-2 py-1 rounded">
+                        REMISE #{index + 1}
                       </div>
                     </div>
                   ))}
