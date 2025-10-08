@@ -5,11 +5,13 @@ import Step1DonneurOrdre from './convoyage/Step1DonneurOrdre';
 import Step2VehiculeInfos from './convoyage/Step2VehiculeInfos';
 import Step3PhotosPriseEnCharge from './convoyage/Step3PhotosPriseEnCharge';
 import Step4Validation from './convoyage/Step4Validation';
+import Step5TrajetNavigation from './convoyage/Step5TrajetNavigation';
+import Step6Remise from './convoyage/Step6Remise';
 import { Button } from '@/components/ui/button';
 import { Zap } from 'lucide-react';
 
 interface ConvoyageStepsProps {
-  currentStep: number; // 1 à 4
+  currentStep: number; // 1 à 6
   formData: Partial<InterventionFormData>;
   onNext: (data: Partial<InterventionFormData>) => void;
   onPrevious: () => void;
@@ -124,10 +126,32 @@ export default function ConvoyageSteps({
     );
   }
 
-  // Step 4: Validation et observations
+  // Step 4: Validation et signatures prise en charge
   if (currentStep === 4) {
     return (
       <Step4Validation
+        formData={formData}
+        onNext={onNext}
+        onPrevious={onPrevious}
+      />
+    );
+  }
+
+  // Step 5: Trajet et navigation GPS
+  if (currentStep === 5) {
+    return (
+      <Step5TrajetNavigation
+        formData={formData}
+        onNext={onNext}
+        onPrevious={onPrevious}
+      />
+    );
+  }
+
+  // Step 6: Remise du véhicule (photos + observations + signatures)
+  if (currentStep === 6) {
+    return (
+      <Step6Remise
         formData={formData}
         onNext={onSubmit}
         onPrevious={onPrevious}

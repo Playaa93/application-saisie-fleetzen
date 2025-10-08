@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2 } from 'lucide-react';
+import { SignaturePadComponent } from '@/components/ui/signature-pad';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface Step4ValidationProps {
   formData: Partial<InterventionFormData>;
@@ -16,15 +17,23 @@ interface Step4ValidationProps {
 
 export default function Step4Validation({ formData, onNext, onPrevious }: Step4ValidationProps) {
   const [observationsDepart, setObservationsDepart] = useState(formData.observationsDepart || '');
+  const [signatureAgent, setSignatureAgent] = useState<string | null>(null);
+  const [signatureClient, setSignatureClient] = useState<string | null>(null);
+
+  const canSubmit = signatureAgent !== null && signatureClient !== null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!canSubmit) {
+      alert('⚠️ Les deux signatures sont obligatoires pour continuer');
+      return;
+    }
+
     onNext({
       observationsDepart,
-      // Pour MVP: on simule les signatures avec un timestamp
-      signatureAgentDepart: `signature_agent_${Date.now()}`,
-      signatureClientDepart: `signature_client_${Date.now()}`,
+      signatureAgentDepart: signatureAgent,
+      signatureClientDepart: signatureClient,
     });
   };
 
@@ -138,11 +147,38 @@ export default function Step4Validation({ formData, onNext, onPrevious }: Step4V
           </div>
         </div>
 
-        {/* Info signatures (MVP simplifié) */}
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-300 dark:border-blue-700 rounded-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            ℹ️ <strong>Validation automatique</strong> - Les signatures électroniques seront demandées lors de la remise du véhicule.
-          </p>
+        {/* Signatures électroniques */}
+        <div className="space-y-6 p-4 bg-muted/30 rounded-lg border">
+          <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+            Signatures de prise en charge
+          </h3>
+
+          {/* Signature Agent */}
+          <SignaturePadComponent
+            label="Signature de l'agent convoyeur"
+            required
+            onSignatureChange={setSignatureAgent}
+            width={Math.min(500, window.innerWidth - 100)}
+            height={180}
+          />
+
+          {/* Signature Client */}
+          <SignaturePadComponent
+            label="Signature du client / donneur d'ordre"
+            required
+            onSignatureChange={setSignatureClient}
+            width={Math.min(500, window.innerWidth - 100)}
+            height={180}
+          />
+
+          {(!signatureAgent || !signatureClient) && (
+            <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-300 dark:border-yellow-700 rounded-md">
+              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                Les deux signatures sont obligatoires pour démarrer le convoyage
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Navigation buttons */}
@@ -155,8 +191,12 @@ export default function Step4Validation({ formData, onNext, onPrevious }: Step4V
           >
             ← Retour
           </Button>
-          <Button type="submit" className="flex-1">
-            Démarrer le convoyage →
+          <Button
+            type="submit"
+            className="flex-1"
+            disabled={!canSubmit}
+          >
+            {canSubmit ? 'Démarrer le convoyage →' : 'Signatures requises'}
           </Button>
         </div>
       </form>

@@ -240,7 +240,7 @@ export default function InterventionDetailPage() {
           </Card>
         )}
 
-        {/* Signatures */}
+        {/* Signatures générales (lavage, carburant, etc.) */}
         {(intervention.clientSignature || intervention.agentSignature) && (
           <Card>
             <CardHeader>
@@ -265,6 +265,86 @@ export default function InterventionDetailPage() {
                     alt="Signature agent"
                     className="border border-border rounded-lg max-h-32"
                   />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Signatures de DÉPART (Convoyage - Prise en charge) */}
+        {(intervention.metadata?.signatureAgentDepart || intervention.metadata?.signatureClientDepart) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                Signatures de prise en charge
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {intervention.metadata.signatureAgentDepart && (
+                <div>
+                  <p className="text-sm font-medium mb-2 text-blue-700 dark:text-blue-300">Agent convoyeur</p>
+                  <img
+                    src={intervention.metadata.signatureAgentDepart}
+                    alt="Signature agent au départ"
+                    className="border-2 border-blue-300 dark:border-blue-700 rounded-lg max-h-32 bg-white"
+                  />
+                </div>
+              )}
+              {intervention.metadata.signatureClientDepart && (
+                <div>
+                  <p className="text-sm font-medium mb-2 text-blue-700 dark:text-blue-300">Client / Donneur d'ordre</p>
+                  <img
+                    src={intervention.metadata.signatureClientDepart}
+                    alt="Signature client au départ"
+                    className="border-2 border-blue-300 dark:border-blue-700 rounded-lg max-h-32 bg-white"
+                  />
+                </div>
+              )}
+              {intervention.metadata?.observationsDepart && (
+                <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-3">
+                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Observations au départ:</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{intervention.metadata.observationsDepart}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Signatures d'ARRIVÉE (Convoyage - Remise) */}
+        {(intervention.metadata?.signatureAgentArrivee || intervention.metadata?.signatureClientArrivee) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-teal-600" />
+                Signatures de remise
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {intervention.metadata.signatureAgentArrivee && (
+                <div>
+                  <p className="text-sm font-medium mb-2 text-teal-700 dark:text-teal-300">Agent convoyeur</p>
+                  <img
+                    src={intervention.metadata.signatureAgentArrivee}
+                    alt="Signature agent à l'arrivée"
+                    className="border-2 border-teal-300 dark:border-teal-700 rounded-lg max-h-32 bg-white"
+                  />
+                </div>
+              )}
+              {intervention.metadata.signatureClientArrivee && (
+                <div>
+                  <p className="text-sm font-medium mb-2 text-teal-700 dark:text-teal-300">Destinataire</p>
+                  <img
+                    src={intervention.metadata.signatureClientArrivee}
+                    alt="Signature destinataire à l'arrivée"
+                    className="border-2 border-teal-300 dark:border-teal-700 rounded-lg max-h-32 bg-white"
+                  />
+                </div>
+              )}
+              {intervention.metadata?.observationsArrivee && (
+                <div className="bg-teal-50 dark:bg-teal-900/10 border border-teal-200 dark:border-teal-800 rounded-lg p-3 mt-3">
+                  <p className="text-xs font-semibold text-teal-900 dark:text-teal-100 mb-1">Observations à l'arrivée:</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{intervention.metadata.observationsArrivee}</p>
                 </div>
               )}
             </CardContent>

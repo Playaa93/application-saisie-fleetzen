@@ -235,7 +235,9 @@ export default function NouvelleInterventionPage() {
         { number: 2, label: 'Donneur d\'ordre', completed: currentStep > 2 },
         { number: 3, label: 'Véhicule', completed: currentStep > 3 },
         { number: 4, label: 'Photos prise en charge', completed: currentStep > 4 },
-        { number: 5, label: 'Validation', completed: false },
+        { number: 5, label: 'Signatures départ', completed: currentStep > 5 },
+        { number: 6, label: 'Trajet & Navigation', completed: currentStep > 6 },
+        { number: 7, label: 'Remise véhicule', completed: false },
       ];
     }
 

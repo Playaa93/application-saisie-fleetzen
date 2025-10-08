@@ -138,3 +138,71 @@ export function getGoogleMapsUrl(latitude: number, longitude: number): string {
 export function getWazeUrl(latitude: number, longitude: number): string {
   return `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`;
 }
+
+/**
+ * Calculer la distance entre deux points GPS (formule Haversine)
+ * @param lat1 Latitude du point 1 (degrés décimaux)
+ * @param lon1 Longitude du point 1 (degrés décimaux)
+ * @param lat2 Latitude du point 2 (degrés décimaux)
+ * @param lon2 Longitude du point 2 (degrés décimaux)
+ * @returns Distance en mètres
+ */
+export function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  // Rayon de la Terre en mètres
+  const R = 6371000;
+
+  // Convertir degrés en radians
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  // Formule Haversine
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  // Distance en mètres
+  const distance = R * c;
+
+  return distance;
+}
+
+/**
+ * Vérifier si une position est dans une zone géographique (geofencing)
+ * @param currentLat Latitude actuelle
+ * @param currentLon Longitude actuelle
+ * @param targetLat Latitude cible
+ * @param targetLon Longitude cible
+ * @param radiusMeters Rayon du geofence en mètres (par défaut: 100m)
+ * @returns true si dans la zone, false sinon
+ */
+export function isWithinGeofence(
+  currentLat: number,
+  currentLon: number,
+  targetLat: number,
+  targetLon: number,
+  radiusMeters: number = 100
+): boolean {
+  const distance = calculateDistance(currentLat, currentLon, targetLat, targetLon);
+  return distance <= radiusMeters;
+}
+
+/**
+ * Formater une distance en texte lisible
+ * @param meters Distance en mètres
+ * @returns Texte formaté (ex: "150 m" ou "2.3 km")
+ */
+export function formatDistance(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  }
+  return `${(meters / 1000).toFixed(1)} km`;
+}
