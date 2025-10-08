@@ -356,9 +356,23 @@ export async function POST(request: NextRequest) {
 
     const photosAnomaliesFiles = formData.getAll('photosAnomalies') as File[];
 
+    // 🔍 Récupérer les métadonnées des anomalies (position + description)
+    const anomaliesMetadataRaw = formData.get('anomaliesMetadata') as string | null;
+    let anomaliesMetadata: Array<{ position: string; description: string; hasPhoto: boolean }> = [];
+
+    if (anomaliesMetadataRaw) {
+      try {
+        anomaliesMetadata = JSON.parse(anomaliesMetadataRaw);
+        logger.info({ anomaliesMetadata }, '✅ Anomalies metadata parsed');
+      } catch (error) {
+        logger.warn({ anomaliesMetadataRaw, error }, '⚠️ Failed to parse anomaliesMetadata');
+      }
+    }
+
     // 🔍 LOG DÉTAILLÉ DES PHOTOS ANOMALIES
     logger.info({
       anomaliesCount: photosAnomaliesFiles.length,
+      metadataCount: anomaliesMetadata.length,
       anomaliesDetails: photosAnomaliesFiles.map((f, idx) => ({
         index: idx,
         name: f.name,
@@ -569,10 +583,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload des photos ANOMALIES (pour convoyage - dégâts détectés)
+    // Mapper chaque photo uploadée avec ses métadonnées (position + description)
+    const photosAnomaliesWithMetadata: Array<{ position: string; url: string; description: string }> = [];
+
     for (let i = 0; i < photosAnomaliesFiles.length; i++) {
       const url = await uploadPhoto(photosAnomaliesFiles[i], 'anomalie', i);
-      if (url) photosAnomaliesUrls.push(url);
+      if (url) {
+        photosAnomaliesUrls.push(url);
+
+        // Associer l'URL avec les métadonnées correspondantes
+        if (anomaliesMetadata[i]) {
+          photosAnomaliesWithMetadata.push({
+            position: anomaliesMetadata[i].position,
+            url: url,
+            description: anomaliesMetadata[i].description || ''
+          });
+        } else {
+          // Fallback: photo sans métadonnées (ne devrait pas arriver)
+          logger.warn({ index: i }, '⚠️ Anomaly photo without metadata');
+          photosAnomaliesWithMetadata.push({
+            position: 'unknown',
+            url: url,
+            description: ''
+          });
+        }
+      }
     }
+
+    logger.info({
+      uploadedCount: photosAnomaliesUrls.length,
+      withMetadata: photosAnomaliesWithMetadata.length,
+      positions: photosAnomaliesWithMetadata.map(a => a.position)
+    }, '✅ Anomalies uploaded with metadata');
 
     if (photoRecordsToInsert.length > 0) {
       const { error: photoInsertError } = await storageClient
@@ -624,11 +666,14 @@ export async function POST(request: NextRequest) {
         })),
         photosPriseEnCharge: photosPriseEnChargeUrls, // Objet avec positions comme clés
         photosRemise: photosRemiseUrls, // Objet avec positions comme clés
-        photosAnomalies: photosAnomaliesUrls.map((url, idx) => ({
-          url,
-          uploadedAt: new Date().toISOString(),
-          index: idx
-        }))
+        // ✅ NOUVEAU FORMAT: Anomalies avec position + description pour affichage moderne (Badge + Accordion)
+        photosAnomalies: photosAnomaliesWithMetadata.length > 0
+          ? photosAnomaliesWithMetadata  // Format moderne: { position, url, description }
+          : photosAnomaliesUrls.map((url, idx) => ({  // Fallback legacy: { url, index }
+              url,
+              uploadedAt: new Date().toISOString(),
+              index: idx
+            }))
       };
 
       // Use service client for UPDATE (already created above)

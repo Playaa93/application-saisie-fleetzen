@@ -447,6 +447,15 @@ export default function NouvelleInterventionPage() {
           continue;
         }
 
+        // ✅ NOUVEAU: Gérer les métadonnées des anomalies (position + description)
+        if (key === 'anomaliesMetadata' && Array.isArray(value)) {
+          const metadata = value as Array<{ position: string; description: string; hasPhoto: boolean }>;
+          console.log(`📋 Adding anomaliesMetadata (${metadata.length} entries) to FormData`);
+          // Sérialiser en JSON pour l'API
+          formDataToSend.append('anomaliesMetadata', JSON.stringify(metadata));
+          continue;
+        }
+
         if (key === 'photos' && Array.isArray(value)) {
           const files = value as File[];
           files.forEach((photo, index) => {
