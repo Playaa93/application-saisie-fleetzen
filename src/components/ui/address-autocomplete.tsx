@@ -17,7 +17,7 @@ interface AddressAutocompleteProps {
 }
 
 export function AddressAutocomplete({
-  value,
+  value = '',
   onChange,
   placeholder = 'Commencez à taper une adresse...',
   disabled = false,
@@ -112,7 +112,7 @@ export function AddressAutocomplete({
   return (
     <Input
       ref={inputRef}
-      value={value || ''}
+      value={value}
       onChange={handleChange}
       placeholder={placeholder}
       disabled={disabled}

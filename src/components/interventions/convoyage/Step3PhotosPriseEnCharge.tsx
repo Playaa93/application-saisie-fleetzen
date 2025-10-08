@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, Check, X, AlertTriangle } from 'lucide-react';
+import Compressor from 'compressorjs';
+import { toast } from 'sonner';
 
 interface Step3PhotosPriseEnChargeProps {
   formData: Partial<InterventionFormData>;
@@ -43,6 +45,30 @@ const PHOTO_POSITIONS: PhotoPosition[] = [
   { id: 'interieur_arriere', label: '11. Intérieur arrière', description: 'Sièges arrière', required: true },
   { id: 'tableau_bord', label: '12. Tableau de bord', description: 'Compteur kilométrique visible', required: true },
 ];
+
+// Helper function to compress photos
+const compressPhoto = async (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    new Compressor(file, {
+      quality: 0.85,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      convertTypes: ['image/png', 'image/webp'],
+      convertSize: 1000000,
+      mimeType: 'image/jpeg',
+      checkOrientation: true,
+      success: (compressedFile) => {
+        const renamedFile = new File(
+          [compressedFile],
+          file.name.replace(/\.[^/.]+$/, '.jpg'),
+          { type: 'image/jpeg', lastModified: file.lastModified }
+        );
+        resolve(renamedFile);
+      },
+      error: (err) => reject(err)
+    });
+  });
+};
 
 export default function Step3PhotosPriseEnCharge({ formData, onNext, onPrevious }: Step3PhotosPriseEnChargeProps) {
   const [photosData, setPhotosData] = useState<Record<string, PhotoWithAnomaly>>(() => {
@@ -99,17 +125,33 @@ export default function Step3PhotosPriseEnCharge({ formData, onNext, onPrevious 
     }));
   };
 
-  const handleFileInputChange = (positionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = async (positionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      handleMainPhotoChange(positionId, file);
+      const toastId = toast.loading('Compression de la photo...');
+      try {
+        const compressed = await compressPhoto(file);
+        handleMainPhotoChange(positionId, compressed);
+        toast.success('Photo compressée', { id: toastId, duration: 1000 });
+      } catch (error) {
+        console.error('Erreur de compression:', error);
+        toast.error('Erreur de compression', { id: toastId });
+      }
     }
   };
 
-  const handleAnomalyFileInputChange = (positionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAnomalyFileInputChange = async (positionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      handleAnomalyPhotoChange(positionId, file);
+      const toastId = toast.loading('Compression de la photo anomalie...');
+      try {
+        const compressed = await compressPhoto(file);
+        handleAnomalyPhotoChange(positionId, compressed);
+        toast.success('Photo anomalie compressée', { id: toastId, duration: 1000 });
+      } catch (error) {
+        console.error('Erreur de compression:', error);
+        toast.error('Erreur de compression', { id: toastId });
+      }
     }
   };
 
